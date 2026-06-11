@@ -2,28 +2,20 @@
 #include "../include/stb_image.h"
 #include "../include/Shader.h"
 #include "../include/Camera.h"
-
-const unsigned int SRC_WIDTH = 800;
-const unsigned int SRC_HEIGHT = 600;
-const float RENDER_DIST = 100.0f;
-const unsigned int CUBE_VERTICIES_COUNT = 36;
-
-// TMP
-float lastMouseX = 400;
-float lastMouseY = 300;
-float yaw = -90.0f;
-float pitch = 0.0f;
-Camera *camera = new Camera();
-bool isMouseFirstEntered = true;
+#include "../include/Input.h"
+#include "../include/Chunk.h"
 
 float deltaTime = 0.0f;
 
 void framebuffer_size_callback(GLFWwindow*, int width, int height);
-void processInput(GLFWwindow *window, Camera *camera);
+void processInput(GLFWwindow *window, Camera *camera, Input *input);
 GLFWwindow* initGLFW();
 int initGLAD(GLFWwindow* window);
 unsigned int genTexture(std::string texturePath);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
+void putBenchmarkToTerminal(float deltaTime);
+void DrawChunks(std::vector<Chunk> chunks, int modelLoc);
 
 const std::string vertexShaderPath = "shaders/vertex_shader.shader";
 const std::string fragmentShaderPath = "shaders/fragment_shader.shader";
@@ -44,51 +36,56 @@ int main()
 	// cube verticies
 	float verticies[] = {
 	//  |----coordinate----| |-texture--|
-		-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
-		 0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
-		 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-		 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-		-0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-		-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
-
-		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-		 0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-		 0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-		 0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-		-0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
-		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-
-		-0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-		-0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-		-0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-
-		 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-		 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-		 0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-		 0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-		 0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-		 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-
-		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-		 0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
-		 0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-		 0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-
-		-0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-		 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-		 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-		 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-		-0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
-		-0.5f,  0.5f, -0.5f,  0.0f, 1.0f
+		// Back face
+		-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,	// Bottom-left
+		 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,	// top-right
+		 0.5f, -0.5f, -0.5f,  1.0f, 0.0f,	// bottom-right         
+		 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,	// top-right
+		-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,	// bottom-left
+		-0.5f,  0.5f, -0.5f,  0.0f, 1.0f,	// top-left
+		// Front face
+		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,	// bottom-left
+		 0.5f, -0.5f,  0.5f,  1.0f, 0.0f,	// bottom-right
+		 0.5f,  0.5f,  0.5f,  1.0f, 1.0f,	// top-right
+		 0.5f,  0.5f,  0.5f,  1.0f, 1.0f,	// top-right
+		-0.5f,  0.5f,  0.5f,  0.0f, 1.0f,	// top-left
+		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,	// bottom-left
+		// Left face
+		-0.5f,  0.5f,  0.5f,  1.0f, 0.0f,	// top-right
+		-0.5f,  0.5f, -0.5f,  1.0f, 1.0f,	// top-left
+		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,	// bottom-left
+		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,	// bottom-left
+		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,	// bottom-right
+		-0.5f,  0.5f,  0.5f,  1.0f, 0.0f,	// top-right
+		// Right face
+		 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,	// top-left
+		 0.5f, -0.5f, -0.5f,  0.0f, 1.0f,	// bottom-right
+		 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,	// top-right         
+		 0.5f, -0.5f, -0.5f,  0.0f, 1.0f,	// bottom-right
+		 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,	// top-left
+		 0.5f, -0.5f,  0.5f,  0.0f, 0.0f,	// bottom-left     
+		// Bottom face
+		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,	// top-right
+		 0.5f, -0.5f, -0.5f,  1.0f, 1.0f,	// top-left
+		 0.5f, -0.5f,  0.5f,  1.0f, 0.0f,	// bottom-left
+		 0.5f, -0.5f,  0.5f,  1.0f, 0.0f,	// bottom-left
+		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,	// bottom-right
+		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,	// top-right
+		// Top face
+		-0.5f,  0.5f, -0.5f,  0.0f, 1.0f,	// top-left
+		 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,	// bottom-right
+		 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,	// top-right     
+		 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,	// bottom-right
+		-0.5f,  0.5f, -0.5f,  0.0f, 1.0f,	// top-left
+		-0.5f,  0.5f,  0.5f,  0.0f, 0.0f 	// bottom-left
 	};
 
 	// enable depth testing
 	glEnable(GL_DEPTH_TEST);
+	// cull back faces
+	glEnable(GL_CULL_FACE);
+	glCullFace(GL_BACK);
+	glFrontFace(GL_CCW);
 
 	Shader *shader = new Shader(vertexShaderPath, fragmentShaderPath);
 	if (shader->ID == 0)
@@ -129,9 +126,22 @@ int main()
 	// Projection matrix shouldn't change each frame so its set before the main loop
 	projection = glm::perspective(glm::radians(45.0f), (float)(SRC_WIDTH) / (float)(SRC_HEIGHT), 0.1f, RENDER_DIST);
 	glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
-
+	
+	Camera *camera = new Camera();
+	Input *input = new Input();
+	glfwSetWindowUserPointer(window, input);
+	glfwSetKeyCallback(window, key_callback);
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); // capture and hide cursor
 	glfwSetCursorPosCallback(window, mouse_callback);
+
+	std::vector<Chunk> tstChunks;
+	for(int i = 0; i < 27; i++)
+	{
+		Chunk* chunk = new Chunk();
+		chunk->Load();
+		chunk->pos = glm::vec3((i % 3) * CHUNK_SIZE, ((int)(i / 3) % 3) * CHUNK_SIZE, ((int)(i / 9) % 3) * CHUNK_SIZE);
+		tstChunks.push_back(*chunk);
+	}
 
 	float lastframe = 0.0f;
 	//Render loop
@@ -139,7 +149,10 @@ int main()
 	{
 		deltaTime = glfwGetTime() - lastframe;
 		lastframe = glfwGetTime();
-		processInput(window, camera);
+		putBenchmarkToTerminal(deltaTime);
+
+		processInput(window, camera, input);
+		input->UpdateKeys();
 
 		// Clear screen
 		glClearColor(0.15f, 0.2f, 0.25f, 1.0f);
@@ -154,21 +167,14 @@ int main()
 		shader->Use();
 		glBindVertexArray(VAO);
 
-		model = glm::mat4(1.0f);
-		model = glm::translate(model, glm::vec3(1.0f, 1.0f, 0.0f));
-		model = glm::rotate(model, glm::radians(45.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-		glDrawArrays(GL_TRIANGLES, 0, CUBE_VERTICIES_COUNT);
-
-		model = glm::mat4(1.0f);
-		model = glm::translate(model, glm::vec3(-1.0f, -1.0f, 0.0f));
-		model = glm::rotate(model, glm::radians(20.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-		glDrawArrays(GL_TRIANGLES, 0, CUBE_VERTICIES_COUNT);
+		DrawChunks(tstChunks, modelLoc);
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 	}
+
+	// clear terminal
+	std::cout << std::endl;
 
 	glDeleteVertexArrays(1, &VAO);
 	glDeleteBuffers(1, &VBO);
@@ -176,25 +182,66 @@ int main()
 	return (0);
 }
 
-// Input
-void processInput(GLFWwindow *window, Camera *camera)
+void DrawChunks(std::vector<Chunk> chunks, int modelLoc)
 {
+	glm::mat4 model = glm::mat4(1.0f);
+
+	for(const auto& chunk : chunks)
+	{
+		for(int y = 0; y < CHUNK_SIZE; y++)
+		{
+			for(int z = 0; z < CHUNK_SIZE; z++)
+			{
+				for(int x = 0; x < CHUNK_SIZE; x++)
+				{
+					if (chunk.voxels[y][z][x] == EMPTYBLOCK)
+						continue;
+					// do not draw a voxel if it is surrounded by other voxels thus is invisible to a player
+					if (y != 0 && y != CHUNK_SIZE - 1 && chunk.voxels[y-1][z][x] != EMPTYBLOCK && chunk.voxels[y+1][z][x] != EMPTYBLOCK &&
+						z != 0 && z != CHUNK_SIZE - 1 && chunk.voxels[y][z-1][x] != EMPTYBLOCK && chunk.voxels[y][z+1][x] != EMPTYBLOCK &&
+						x != 0 && x != CHUNK_SIZE - 1 && chunk.voxels[y][z][x-1] != EMPTYBLOCK && chunk.voxels[y][z][x+1] != EMPTYBLOCK)
+						continue;
+					model = glm::mat4(1.0f);
+					model = glm::translate(model, glm::vec3(x + chunk.pos.x, y + chunk.pos.y, z + chunk.pos.z));
+					glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+					glDrawArrays(GL_TRIANGLES, 0, CUBE_VERTICIES_COUNT);
+				}
+			}
+		}
+	}
+}
+
+// Input
+void processInput(GLFWwindow *window, Camera *camera, Input *input)
+{
+	// translate mouse input to camera rotation
+	camera->MouseInput(input->GetMousePos());
+
 	// exit program
-	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+	if (input->GetKey(GLFW_KEY_ESCAPE) == I_KEY_SINGLE_PRESS)
 		glfwSetWindowShouldClose(window, true);
+	// wireframe mode
+	if (input->GetKey(GLFW_KEY_R) == I_KEY_SINGLE_PRESS)
+	{
+		if (camera->isWireFrameModeOn == false)
+			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+		else
+			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+		camera->isWireFrameModeOn = !(camera->isWireFrameModeOn);
+	}
 	
 	// move camera
-	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+	if (input->GetKey(GLFW_KEY_W) == I_KEY_HOLD)
 		camera->pos += camera->front * camera->speed * deltaTime;
-	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+	if (input->GetKey(GLFW_KEY_S) == I_KEY_HOLD)
 		camera->pos -= camera->front * camera->speed * deltaTime;
-	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+	if (input->GetKey(GLFW_KEY_A) == I_KEY_HOLD)
 		camera->pos -= glm::normalize(glm::cross(camera->front, camera->up)) * camera->speed * deltaTime;
-	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+	if (input->GetKey(GLFW_KEY_D) == I_KEY_HOLD)
 		camera->pos += glm::normalize(glm::cross(camera->front, camera->up)) * camera->speed * deltaTime;
-	if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
+	if (input->GetKey(GLFW_KEY_SPACE) == I_KEY_HOLD)
 		camera->pos += glm::vec3(0.0f, 1.0f, 0.0f) * camera->speed * deltaTime;
-	if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+	if (input->GetKey(GLFW_KEY_LEFT_SHIFT) == I_KEY_HOLD)
 		camera->pos -= glm::vec3(0.0f, 1.0f, 0.0f) * camera->speed * deltaTime;
 }
 
@@ -268,29 +315,26 @@ unsigned int genTexture(std::string texturePath)
 
 void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 {
-	if (isMouseFirstEntered)
+	Input *input = static_cast<Input*>(glfwGetWindowUserPointer(window));
+	input->UpdateMouseFromInput(std::make_pair(static_cast<float>(xpos), static_cast<float>(ypos)));
+}
+
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode)
+{
+	Input *input = static_cast<Input*>(glfwGetWindowUserPointer(window));
+	input->UpdateKeysFromInput(key, action);
+}
+
+void putBenchmarkToTerminal(float deltaTime)
+{
+	// update benchmark every second
+	static int wholeSecPassed = 0;
+	float curTime = glfwGetTime();
+
+	if ((int)curTime > wholeSecPassed)
 	{
-		lastMouseX = xpos;
-		lastMouseY = ypos;
-		isMouseFirstEntered = false;
+		wholeSecPassed = (int)curTime;
+		std::cout << "\r                    \r"; // clear output line
+		std::cout << "\rFrame deltaTime: " << (float)((int)((deltaTime * 1000) * 100)) / 100 << "ms" << std::flush;
 	}
-
-	float xoffset = (xpos - lastMouseX) * camera->sensetivity;
-	float yoffset = (lastMouseY -ypos) * camera->sensetivity;
-	lastMouseX = xpos;
-	lastMouseY = ypos;
-
-	yaw += xoffset;
-	pitch += yoffset;
-
-	if (pitch > 89.0f)
-		pitch = 89.0f;
-	if (pitch < -89.0f)
-		pitch = -89.0f;
-
-	glm::vec3 direction;
-	direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
-	direction.y = sin(glm::radians(pitch));
-	direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
-	camera->front = glm::normalize(direction);
 }
