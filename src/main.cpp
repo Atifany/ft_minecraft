@@ -149,7 +149,7 @@ int main()
 	{
 		deltaTime = glfwGetTime() - lastframe;
 		lastframe = glfwGetTime();
-		// putBenchmarkToTerminal(deltaTime);
+		putBenchmarkToTerminal(deltaTime);
 
 		processInput(window, camera, input);
 		input->UpdateKeys();
@@ -319,7 +319,7 @@ void putBenchmarkToTerminal(float deltaTime)
 	if ((int)curTime > wholeSecPassed)
 	{
 		wholeSecPassed = (int)curTime;
-		std::cout << "\r                    \r"; // clear output line
-		std::cout << "\r" << (float)((int)((deltaTime * 1000) * 100)) / 100 << "ms | " << (float)((int)((1 / deltaTime) * 100)) / 100 << "fps\n" << std::flush;
+		std::cout << "\r                              \r"; // clear output line
+		std::cout << "\r" << (float)((int)((deltaTime * 1000) * 100)) / 100 << "ms " << (float)((int)((1 / deltaTime) * 100)) / 100 << "fps" << std::flush;
 	}
 }
