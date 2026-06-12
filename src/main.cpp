@@ -95,7 +95,7 @@ int main()
 	}
 	shader->Use();
 
-	unsigned int VBO, VAO, EBO;
+	unsigned int VBO, VAO;
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
 
@@ -149,7 +149,7 @@ int main()
 	{
 		deltaTime = glfwGetTime() - lastframe;
 		lastframe = glfwGetTime();
-		putBenchmarkToTerminal(deltaTime);
+		// putBenchmarkToTerminal(deltaTime);
 
 		processInput(window, camera, input);
 		input->UpdateKeys();
@@ -165,7 +165,6 @@ int main()
 		// Draw
 		glBindTexture(GL_TEXTURE_2D, grassSideTexture);
 		shader->Use();
-		glBindVertexArray(VAO);
 
 		DrawChunks(tstChunks, modelLoc);
 
@@ -188,26 +187,12 @@ void DrawChunks(std::vector<Chunk> chunks, int modelLoc)
 
 	for(const auto& chunk : chunks)
 	{
-		for(int y = 0; y < CHUNK_SIZE; y++)
-		{
-			for(int z = 0; z < CHUNK_SIZE; z++)
-			{
-				for(int x = 0; x < CHUNK_SIZE; x++)
-				{
-					if (chunk.voxels[y][z][x] == EMPTYBLOCK)
-						continue;
-					// do not draw a voxel if it is surrounded by other voxels thus is invisible to a player
-					if (y != 0 && y != CHUNK_SIZE - 1 && chunk.voxels[y-1][z][x] != EMPTYBLOCK && chunk.voxels[y+1][z][x] != EMPTYBLOCK &&
-						z != 0 && z != CHUNK_SIZE - 1 && chunk.voxels[y][z-1][x] != EMPTYBLOCK && chunk.voxels[y][z+1][x] != EMPTYBLOCK &&
-						x != 0 && x != CHUNK_SIZE - 1 && chunk.voxels[y][z][x-1] != EMPTYBLOCK && chunk.voxels[y][z][x+1] != EMPTYBLOCK)
-						continue;
-					model = glm::mat4(1.0f);
-					model = glm::translate(model, glm::vec3(x + chunk.pos.x, y + chunk.pos.y, z + chunk.pos.z));
-					glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-					glDrawArrays(GL_TRIANGLES, 0, CUBE_VERTICIES_COUNT);
-				}
-			}
-		}
+		glBindVertexArray(chunk.VAO);
+		model = glm::mat4(1.0f);
+		model = glm::translate(model, glm::vec3(chunk.pos.x, chunk.pos.y, chunk.pos.z));
+		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+		glDrawArrays(GL_TRIANGLES, 0, chunk.mesh.size());
+		glBindVertexArray(0);
 	}
 }
 
@@ -335,6 +320,6 @@ void putBenchmarkToTerminal(float deltaTime)
 	{
 		wholeSecPassed = (int)curTime;
 		std::cout << "\r                    \r"; // clear output line
-		std::cout << "\rFrame deltaTime: " << (float)((int)((deltaTime * 1000) * 100)) / 100 << "ms" << std::flush;
+		std::cout << "\r" << (float)((int)((deltaTime * 1000) * 100)) / 100 << "ms | " << (float)((int)((1 / deltaTime) * 100)) / 100 << "fps\n" << std::flush;
 	}
 }

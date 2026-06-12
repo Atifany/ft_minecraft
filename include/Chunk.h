@@ -10,6 +10,10 @@ class Chunk
 		glm::vec3 pos;
 		unsigned int voxels[CHUNK_SIZE][CHUNK_SIZE][CHUNK_SIZE];
 
+		std::vector<float> mesh;
+		unsigned int VAO;
+		
+
 		void Load();
 
 	private:
