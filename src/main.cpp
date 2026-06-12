@@ -135,11 +135,11 @@ int main()
 	glfwSetCursorPosCallback(window, mouse_callback);
 
 	std::vector<Chunk> tstChunks;
-	for(int i = 0; i < 27; i++)
+	for(int i = 0; i < 216; i++)
 	{
 		Chunk* chunk = new Chunk();
 		chunk->Load();
-		chunk->pos = glm::vec3((i % 3) * CHUNK_SIZE, ((int)(i / 3) % 3) * CHUNK_SIZE, ((int)(i / 9) % 3) * CHUNK_SIZE);
+		chunk->pos = glm::vec3((i % 6) * CHUNK_SIZE, ((int)(i / 6) % 6) * CHUNK_SIZE, ((int)(i / 36) % 6) * CHUNK_SIZE);
 		tstChunks.push_back(*chunk);
 	}
 
