@@ -12,6 +12,8 @@ add transparent objects
 add Time class to update and provide deltaTime
 use triangles to fit square faces of voxels instead of fitting two triangles in a square face of a voxel
 use optimizations from video in dialogue with Artem
-greedy meshing
-update chunk mesh only on changing chunk and not every frame
-
+full-block textures
+drawing only chunks that are visible to camera
+unload chunks outside render distance
+generate chunks with player movement
+benchmark number of chunks loaded

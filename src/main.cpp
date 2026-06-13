@@ -15,7 +15,8 @@ unsigned int genTexture(std::string texturePath);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
 void putBenchmarkToTerminal(float deltaTime);
-void DrawChunks(std::vector<Chunk> chunks, int modelLoc);
+void DrawChunks(std::vector<Chunk*> chunks, int modelLoc);
+void DeleteChunks(std::vector<Chunk*> chunks);
 
 const std::string vertexShaderPath = "shaders/vertex_shader.shader";
 const std::string fragmentShaderPath = "shaders/fragment_shader.shader";
@@ -134,13 +135,14 @@ int main()
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); // capture and hide cursor
 	glfwSetCursorPosCallback(window, mouse_callback);
 
-	std::vector<Chunk> tstChunks;
+	std::vector<Chunk*> tstChunks;
 	for(int i = 0; i < 216; i++)
 	{
 		Chunk* chunk = new Chunk();
 		chunk->Load();
+		chunk->SetActive(true);
 		chunk->pos = glm::vec3((i % 6) * CHUNK_SIZE, ((int)(i / 6) % 6) * CHUNK_SIZE, ((int)(i / 36) % 6) * CHUNK_SIZE);
-		tstChunks.push_back(*chunk);
+		tstChunks.push_back(chunk);
 	}
 
 	float lastframe = 0.0f;
@@ -175,25 +177,33 @@ int main()
 	// clear terminal
 	std::cout << std::endl;
 
+	DeleteChunks(tstChunks);
 	glDeleteVertexArrays(1, &VAO);
 	glDeleteBuffers(1, &VBO);
 	glfwTerminate();
+	std::cout << "exited successfully!\n";
 	return (0);
 }
 
-void DrawChunks(std::vector<Chunk> chunks, int modelLoc)
+void DrawChunks(std::vector<Chunk*> chunks, int modelLoc)
 {
 	glm::mat4 model = glm::mat4(1.0f);
 
 	for(const auto& chunk : chunks)
 	{
-		glBindVertexArray(chunk.VAO);
+		glBindVertexArray(chunk->VAO);
 		model = glm::mat4(1.0f);
-		model = glm::translate(model, glm::vec3(chunk.pos.x, chunk.pos.y, chunk.pos.z));
+		model = glm::translate(model, glm::vec3(chunk->pos.x, chunk->pos.y, chunk->pos.z));
 		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-		glDrawArrays(GL_TRIANGLES, 0, chunk.mesh.size());
+		glDrawArrays(GL_TRIANGLES, 0, chunk->mesh.size());
 		glBindVertexArray(0);
 	}
+}
+
+void DeleteChunks(std::vector<Chunk*> chunks)
+{
+	for(int i = 0; i < chunks.size(); i++)
+		delete chunks[i];
 }
 
 // Input
