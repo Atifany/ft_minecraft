@@ -226,7 +226,7 @@ void DrawChunks(std::vector<Chunk*> chunks, int modelLoc)
 		model = glm::mat4(1.0f);
 		model = glm::translate(model, glm::vec3(chunk->pos.x, chunk->pos.y, chunk->pos.z));
 		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-		glDrawArrays(GL_TRIANGLES, 0, chunk->mesh.size());
+		glDrawElements(GL_TRIANGLES, chunk->indices.size(), GL_UNSIGNED_INT, 0);
 		glBindVertexArray(0);
 	}
 }

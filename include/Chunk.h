@@ -14,10 +14,12 @@ class Chunk
 		glm::vec3 pos;
 		unsigned int voxels[CHUNK_SIZE][CHUNK_SIZE][CHUNK_SIZE];
 		std::vector<float> mesh;
+		std::vector<unsigned int> indices;
 		unsigned int VAO;
 
 	private:
 		unsigned int VBO;
+		unsigned int EBO;
 };
 
 #endif

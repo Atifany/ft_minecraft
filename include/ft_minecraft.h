@@ -13,6 +13,9 @@
 
 #define VOXELS_IN_CHUNK 32768
 #define CHUNK_SIZE 32
+#define VERTICIES_IN_FACE_RAW 4
+#define VERTICIES_IN_FACE_DRAWN 6
+#define ITEMS_IN_VERTEX 5
 #define CHUNK_RENDER_DIST 12
 
 #define EMPTYBLOCK 0
@@ -73,57 +76,45 @@ const Vertex verticies[36] = {
 	{glm::vec3(-0.5f,  0.5f, -0.5f), glm::vec2(0.0f, 1.0f)},
 	{glm::vec3(-0.5f,  0.5f,  0.5f), glm::vec2(0.0f, 0.0f)}
 };
-const Vertex verticiesFaceTop[6] = {
-	{glm::vec3( 0.5f,  0.5f,  0.5f), glm::vec2(0.0f, 1.0f)},	// top-right
-	{glm::vec3( 0.5f,  0.5f, -0.5f), glm::vec2(1.0f, 1.0f)},	// top-left
-	{glm::vec3(-0.5f,  0.5f, -0.5f), glm::vec2(1.0f, 0.0f)},	// bottom-left
-	{glm::vec3(-0.5f,  0.5f, -0.5f), glm::vec2(1.0f, 0.0f)},	// bottom-left
-	{glm::vec3(-0.5f,  0.5f,  0.5f), glm::vec2(0.0f, 0.0f)},	// bottom-right
-	{glm::vec3( 0.5f,  0.5f,  0.5f), glm::vec2(0.0f, 1.0f)}		// top-right
-};
-const Vertex verticiesFaceBottom[6] = {
-	{glm::vec3(-0.5f, -0.5f,  0.5f), glm::vec2(0.0f, 1.0f)},	// top-right
-	{glm::vec3(-0.5f, -0.5f, -0.5f), glm::vec2(1.0f, 1.0f)},	// top-left
-	{glm::vec3( 0.5f, -0.5f, -0.5f), glm::vec2(1.0f, 0.0f)},	// bottom-left
-	{glm::vec3( 0.5f, -0.5f, -0.5f), glm::vec2(1.0f, 0.0f)},	// bottom-left
-	{glm::vec3( 0.5f, -0.5f,  0.5f), glm::vec2(0.0f, 0.0f)},	// bottom-right
-	{glm::vec3(-0.5f, -0.5f,  0.5f), glm::vec2(0.0f, 1.0f)}		// top-right
-};
-const int indicesFaceBottom[6] = {
+const unsigned int indicesFace[6] = {
 	0, 1, 2,
 	2, 3, 0
 };
-const Vertex verticiesFaceFront[6] = {
+const Vertex verticiesFaceTop[4] = {
+	{glm::vec3( 0.5f,  0.5f,  0.5f), glm::vec2(0.0f, 1.0f)},	// top-right
+	{glm::vec3( 0.5f,  0.5f, -0.5f), glm::vec2(1.0f, 1.0f)},	// top-left
+	{glm::vec3(-0.5f,  0.5f, -0.5f), glm::vec2(1.0f, 0.0f)},	// bottom-left
+	{glm::vec3(-0.5f,  0.5f,  0.5f), glm::vec2(0.0f, 0.0f)},	// bottom-right
+};
+const Vertex verticiesFaceBottom[4] = {
+	{glm::vec3(-0.5f, -0.5f,  0.5f), glm::vec2(0.0f, 1.0f)},	// top-right
+	{glm::vec3(-0.5f, -0.5f, -0.5f), glm::vec2(1.0f, 1.0f)},	// top-left
+	{glm::vec3( 0.5f, -0.5f, -0.5f), glm::vec2(1.0f, 0.0f)},	// bottom-left
+	{glm::vec3( 0.5f, -0.5f,  0.5f), glm::vec2(0.0f, 0.0f)},	// bottom-right
+};
+const Vertex verticiesFaceFront[4] = {
 	{glm::vec3( 0.5f,  0.5f,  0.5f), glm::vec2(0.0f, 1.0f)},	// top-right
 	{glm::vec3(-0.5f,  0.5f,  0.5f), glm::vec2(1.0f, 1.0f)},	// top-left
 	{glm::vec3(-0.5f, -0.5f,  0.5f), glm::vec2(1.0f, 0.0f)},	// bottom-left
-	{glm::vec3(-0.5f, -0.5f,  0.5f), glm::vec2(1.0f, 0.0f)},	// bottom-left
 	{glm::vec3( 0.5f, -0.5f,  0.5f), glm::vec2(0.0f, 0.0f)},	// bottom-right
-	{glm::vec3( 0.5f,  0.5f,  0.5f), glm::vec2(0.0f, 1.0f)}		// top-right
 };
-const Vertex verticiesFaceBack[6] = {
+const Vertex verticiesFaceBack[4] = {
 	{glm::vec3(-0.5f,  0.5f, -0.5f), glm::vec2(0.0f, 1.0f)},	// top-right
 	{glm::vec3( 0.5f,  0.5f, -0.5f), glm::vec2(1.0f, 1.0f)},	// top-left
 	{glm::vec3( 0.5f, -0.5f, -0.5f), glm::vec2(1.0f, 0.0f)},	// bottom-left
-	{glm::vec3( 0.5f, -0.5f, -0.5f), glm::vec2(1.0f, 0.0f)},	// bottom-left
 	{glm::vec3(-0.5f, -0.5f, -0.5f), glm::vec2(0.0f, 0.0f)},	// bottom-right
-	{glm::vec3(-0.5f,  0.5f, -0.5f), glm::vec2(0.0f, 1.0f)}		// top-right
 };
-const Vertex verticiesFaceLeft[6] = {
+const Vertex verticiesFaceLeft[4] = {
 	{glm::vec3(-0.5f,  0.5f,  0.5f), glm::vec2(0.0f, 1.0f)},	// top-right
 	{glm::vec3(-0.5f,  0.5f, -0.5f), glm::vec2(1.0f, 1.0f)},	// top-left
 	{glm::vec3(-0.5f, -0.5f, -0.5f), glm::vec2(1.0f, 0.0f)},	// bottom-left
-	{glm::vec3(-0.5f, -0.5f, -0.5f), glm::vec2(1.0f, 0.0f)},	// bottom-left
 	{glm::vec3(-0.5f, -0.5f,  0.5f), glm::vec2(0.0f, 0.0f)},	// bottom-right
-	{glm::vec3(-0.5f,  0.5f,  0.5f), glm::vec2(0.0f, 1.0f)}		// top-right
 };
-const Vertex verticiesFaceRight[6] = {
+const Vertex verticiesFaceRight[4] = {
 	{glm::vec3( 0.5f,  0.5f, -0.5f), glm::vec2(0.0f, 1.0f)},	// top-right
 	{glm::vec3( 0.5f,  0.5f,  0.5f), glm::vec2(1.0f, 1.0f)},	// top-left
 	{glm::vec3( 0.5f, -0.5f,  0.5f), glm::vec2(1.0f, 0.0f)},	// bottom-left
-	{glm::vec3( 0.5f, -0.5f,  0.5f), glm::vec2(1.0f, 0.0f)},	// bottom-left
 	{glm::vec3( 0.5f, -0.5f, -0.5f), glm::vec2(0.0f, 0.0f)},	// bottom-right
-	{glm::vec3( 0.5f,  0.5f, -0.5f), glm::vec2(0.0f, 1.0f)}		// top-right
 };
 
 #endif
