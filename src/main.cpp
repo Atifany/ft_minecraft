@@ -15,7 +15,7 @@ unsigned int genTexture(std::string texturePath);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
 void putBenchmarkToTerminal(float deltaTime, unsigned int chunksNumber);
-void DrawChunks(std::vector<Chunk*> chunks, int modelLoc, Camera* camera);
+void DrawChunks(std::vector<Chunk*> chunks, int modelLoc, Camera* camera, glm::mat4 vp);
 void DeleteChunks(std::vector<Chunk*> chunks);
 Chunk* FindChunkAtPos(std::vector<Chunk*> chunks, glm::vec3 _pos);
 
@@ -121,7 +121,7 @@ int main()
 	glm::mat4 projection = glm::mat4(1.0f);
 
 	// get uniforms for transform matricies
-	int modelLoc = glGetUniformLocation(shader->ID, "model");
+	int mvpLoc = glGetUniformLocation(shader->ID, "mvp");
 	int viewLoc = glGetUniformLocation(shader->ID, "view");
 	int projectionLoc = glGetUniformLocation(shader->ID, "projection");
 
@@ -199,7 +199,7 @@ int main()
 		glBindTexture(GL_TEXTURE_2D, grassSideTexture);
 		shader->Use();
 
-		DrawChunks(chunks, modelLoc, camera);
+		DrawChunks(chunks, mvpLoc, camera, projection * view);
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
@@ -216,26 +216,24 @@ int main()
 	return (0);
 }
 
-void DrawChunks(std::vector<Chunk*> chunks, int modelLoc, Camera* camera)
+void DrawChunks(std::vector<Chunk*> chunks, int mvpLoc, Camera* camera, glm::mat4 vp)
 {
 	glm::mat4 model = glm::mat4(1.0f);
+	glm::mat4 mvp = glm::mat4(1.0f);
 
 	for(const auto& chunk : chunks)
 	{
-		if ((camera->front.x - camera->pos.x >= 0.0f && chunk->pos.x < camera->pos.x ||
-			camera->front.x - camera->pos.x <  0.0f && chunk->pos.x > camera->pos.x) &&
-			(camera->front.y - camera->pos.y >= 0.0f && chunk->pos.y < camera->pos.y ||
-			camera->front.y - camera->pos.y <  0.0f && chunk->pos.y > camera->pos.y) &&
-			(camera->front.z - camera->pos.z >= 0.0f && chunk->pos.z < camera->pos.z ||
-			camera->front.z - camera->pos.z <  0.0f && chunk->pos.z > camera->pos.z))
-			{
-				// std::cout << "AAA\n";
-				continue;
-			}
+		if ((camera->pos.x + camera->right.x - camera->pos.x)*(chunk->pos.z - camera->pos.z) -
+			(camera->pos.z + camera->right.z - camera->pos.z)*(chunk->pos.x - camera->pos.x) < 0)
+			continue;
 		glBindVertexArray(chunk->VAO);
 		model = glm::mat4(1.0f);
 		model = glm::translate(model, glm::vec3(chunk->pos.x, chunk->pos.y, chunk->pos.z));
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+		//glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+
+		mvp = vp * model;
+		glUniformMatrix4fv(mvpLoc, 1, GL_FALSE, glm::value_ptr(mvp));
+
 		glDrawElements(GL_TRIANGLES, chunk->indices.size(), GL_UNSIGNED_INT, 0);
 		glBindVertexArray(0);
 	}
@@ -314,7 +312,7 @@ GLFWwindow* initGLFW()
 		return (NULL);
 	}
 	glfwMakeContextCurrent(window);
-	glfwSwapInterval(0);
+	glfwSwapInterval(0);			// Vsync
 	return (window);
 }
 

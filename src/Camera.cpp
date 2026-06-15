@@ -4,6 +4,7 @@ Camera::Camera()
 {
 	this->up = glm::vec3(0.0f, 1.0f, 0.0f);
 	this->front = glm::vec3(0.0f, 0.0f, -1.0f);
+	this->right = glm::cross(this->up, this->front);
 	this->pos = glm::vec3(0.0f, 0.0f, 3.0f);
 	this->curChunkCoord = glm::vec3(0, 0, 0);
 	this->speed = 10.0f;
@@ -43,4 +44,5 @@ void Camera::MouseInput(std::pair<float, float> mousePos)
 	direction.y = sin(glm::radians(pitch));
 	direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
 	this->front = glm::normalize(direction);
+	this->right = glm::cross(this->up, this->front);
 }
