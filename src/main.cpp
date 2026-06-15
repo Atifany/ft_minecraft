@@ -14,9 +14,10 @@ int initGLAD(GLFWwindow* window);
 unsigned int genTexture(std::string texturePath);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
-void putBenchmarkToTerminal(float deltaTime);
+void putBenchmarkToTerminal(float deltaTime, unsigned int chunksNumber);
 void DrawChunks(std::vector<Chunk*> chunks, int modelLoc);
 void DeleteChunks(std::vector<Chunk*> chunks);
+Chunk* FindChunkAtPos(std::vector<Chunk*> chunks, glm::vec3 _pos);
 
 const std::string vertexShaderPath = "shaders/vertex_shader.shader";
 const std::string fragmentShaderPath = "shaders/fragment_shader.shader";
@@ -125,7 +126,7 @@ int main()
 	int projectionLoc = glGetUniformLocation(shader->ID, "projection");
 
 	// Projection matrix shouldn't change each frame so its set before the main loop
-	projection = glm::perspective(glm::radians(45.0f), (float)(SRC_WIDTH) / (float)(SRC_HEIGHT), 0.1f, RENDER_DIST);
+	projection = glm::perspective(glm::radians(45.0f), (float)(SRC_WIDTH) / (float)(SRC_HEIGHT), 0.1f, (float)(CHUNK_RENDER_DIST * CHUNK_SIZE));
 	glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
 	
 	Camera *camera = new Camera();
@@ -135,15 +136,7 @@ int main()
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); // capture and hide cursor
 	glfwSetCursorPosCallback(window, mouse_callback);
 
-	std::vector<Chunk*> tstChunks;
-	for(int i = 0; i < 216; i++)
-	{
-		Chunk* chunk = new Chunk();
-		chunk->Load();
-		chunk->SetActive(true);
-		chunk->pos = glm::vec3((i % 6) * CHUNK_SIZE, ((int)(i / 6) % 6) * CHUNK_SIZE, ((int)(i / 36) % 6) * CHUNK_SIZE);
-		tstChunks.push_back(chunk);
-	}
+	std::vector<Chunk*> chunks;
 
 	float lastframe = 0.0f;
 	//Render loop
@@ -151,7 +144,7 @@ int main()
 	{
 		deltaTime = glfwGetTime() - lastframe;
 		lastframe = glfwGetTime();
-		putBenchmarkToTerminal(deltaTime);
+		putBenchmarkToTerminal(deltaTime, chunks.size());
 
 		processInput(window, camera, input);
 		input->UpdateKeys();
@@ -164,11 +157,49 @@ int main()
 		view = glm::lookAt(camera->pos, camera->pos + camera->front, camera->up);
 		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
 
+		// update chunk coordinate of a camera
+		if ((int)(camera->pos.x / CHUNK_SIZE) != camera->curChunkCoord.x
+			|| (int)(camera->pos.y / CHUNK_SIZE) != camera->curChunkCoord.y
+			|| (int)(camera->pos.z / CHUNK_SIZE) != camera->curChunkCoord.z)
+			camera->curChunkCoord = glm::vec3((int)(camera->pos.x / CHUNK_SIZE), (int)(camera->pos.y / CHUNK_SIZE), (int)(camera->pos.z / CHUNK_SIZE));
+		
+		// Load chunks within CHUNK_RENDER_DIST from camera
+		for (int x = camera->curChunkCoord.x - CHUNK_RENDER_DIST / 2; x < camera->curChunkCoord.x + CHUNK_RENDER_DIST / 2; x++)
+		{
+			for (int y = camera->curChunkCoord.y - CHUNK_RENDER_DIST / 2; y < camera->curChunkCoord.y + CHUNK_RENDER_DIST / 2; y++)
+			{
+				for (int z = camera->curChunkCoord.z - CHUNK_RENDER_DIST / 2; z < camera->curChunkCoord.z + CHUNK_RENDER_DIST / 2; z++)
+				{
+					if (FindChunkAtPos(chunks, glm::vec3(x * CHUNK_SIZE, y * CHUNK_SIZE, z * CHUNK_SIZE)) == NULL)
+					{
+						Chunk* chunk = new Chunk();
+						chunk->Load();
+						chunk->SetActive(true);
+						chunk->pos = glm::vec3(x * CHUNK_SIZE, y * CHUNK_SIZE, z * CHUNK_SIZE);
+						chunks.push_back(chunk);
+					}
+				}
+			}
+		}
+		// Unload chunks outside CHUNK_RENDER_DIST from camera
+		for (auto chunk = chunks.begin(); chunk != chunks.end(); )
+		{
+			if ((*chunk)->pos.x < (camera->curChunkCoord.x - CHUNK_RENDER_DIST / 2) * CHUNK_SIZE || (*chunk)->pos.x > (camera->curChunkCoord.x + CHUNK_RENDER_DIST / 2) * CHUNK_SIZE ||
+				(*chunk)->pos.y < (camera->curChunkCoord.y - CHUNK_RENDER_DIST / 2) * CHUNK_SIZE || (*chunk)->pos.y > (camera->curChunkCoord.y + CHUNK_RENDER_DIST / 2) * CHUNK_SIZE ||
+				(*chunk)->pos.z < (camera->curChunkCoord.z - CHUNK_RENDER_DIST / 2) * CHUNK_SIZE || (*chunk)->pos.z > (camera->curChunkCoord.z + CHUNK_RENDER_DIST / 2) * CHUNK_SIZE)
+			{
+				delete *chunk;
+				chunk = chunks.erase(chunk);
+			}
+			else
+				chunk++;
+		}
+
 		// Draw
 		glBindTexture(GL_TEXTURE_2D, grassSideTexture);
 		shader->Use();
 
-		DrawChunks(tstChunks, modelLoc);
+		DrawChunks(chunks, modelLoc);
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
@@ -177,7 +208,7 @@ int main()
 	// clear terminal
 	std::cout << std::endl;
 
-	DeleteChunks(tstChunks);
+	DeleteChunks(chunks);
 	glDeleteVertexArrays(1, &VAO);
 	glDeleteBuffers(1, &VBO);
 	glfwTerminate();
@@ -204,6 +235,14 @@ void DeleteChunks(std::vector<Chunk*> chunks)
 {
 	for(int i = 0; i < chunks.size(); i++)
 		delete chunks[i];
+}
+
+Chunk* FindChunkAtPos(std::vector<Chunk*> chunks, glm::vec3 _pos)
+{
+	for (Chunk* chunk : chunks)
+		if (chunk->pos == _pos)
+			return chunk;
+	return NULL;
 }
 
 // Input
@@ -320,7 +359,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 	input->UpdateKeysFromInput(key, action);
 }
 
-void putBenchmarkToTerminal(float deltaTime)
+void putBenchmarkToTerminal(float deltaTime, unsigned int chunksNumber)
 {
 	// update benchmark every second
 	static int wholeSecPassed = 0;
@@ -330,6 +369,9 @@ void putBenchmarkToTerminal(float deltaTime)
 	{
 		wholeSecPassed = (int)curTime;
 		std::cout << "\r                              \r"; // clear output line
-		std::cout << "\r" << (float)((int)((deltaTime * 1000) * 100)) / 100 << "ms " << (float)((int)((1 / deltaTime) * 100)) / 100 << "fps" << std::flush;
+		std::cout << "\r" << (float)((int)((deltaTime * 1000) * 100)) / 100 << "ms "
+			<< (float)((int)((1 / deltaTime) * 100)) / 100 << "fps "
+			<< chunksNumber << " chunks rendered"
+			<< std::flush;
 	}
 }

@@ -14,6 +14,6 @@ use triangles to fit square faces of voxels instead of fitting two triangles in 
 use optimizations from video in dialogue with Artem
 full-block textures
 drawing only chunks that are visible to camera
-unload chunks outside render distance
-generate chunks with player movement
-benchmark number of chunks loaded
+V unload chunks outside render distance
+V generate chunks with player movement
+V benchmark number of chunks loaded

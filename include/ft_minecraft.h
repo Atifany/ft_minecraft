@@ -13,13 +13,13 @@
 
 #define VOXELS_IN_CHUNK 32768
 #define CHUNK_SIZE 32
+#define CHUNK_RENDER_DIST 12
 
 #define EMPTYBLOCK 0
 #define GRASSBLOCK 1
 
 const unsigned int SRC_WIDTH = 1920;
 const unsigned int SRC_HEIGHT = 1080;
-const float RENDER_DIST = 200.0f;
 const unsigned int CUBE_VERTICIES_COUNT = 36;
 
 struct Vertex

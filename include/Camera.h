@@ -13,6 +13,7 @@ class Camera
 		glm::vec3 up;
 		glm::vec3 front;
 		glm::vec3 pos;
+		glm::vec3 curChunkCoord;
 		float speed;
 		float sensetivity;
 		bool isWireFrameModeOn;
