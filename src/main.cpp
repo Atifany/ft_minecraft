@@ -314,6 +314,7 @@ GLFWwindow* initGLFW()
 		return (NULL);
 	}
 	glfwMakeContextCurrent(window);
+	glfwSwapInterval(0);
 	return (window);
 }
 

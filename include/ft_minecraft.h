@@ -11,7 +11,6 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-#define VOXELS_IN_CHUNK 32768
 #define CHUNK_SIZE 32
 #define VERTICIES_IN_FACE_RAW 4
 #define VERTICIES_IN_FACE_DRAWN 6
