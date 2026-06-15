@@ -20,4 +20,4 @@ Multithread chunk loading
 circle chunk loading
 SSBO instead of VAO
 EBO for each face
-
+Do not draw chunks behind camera
