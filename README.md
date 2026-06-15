@@ -13,7 +13,11 @@ add Time class to update and provide deltaTime
 use triangles to fit square faces of voxels instead of fitting two triangles in a square face of a voxel
 use optimizations from video in dialogue with Artem
 full-block textures
-drawing only chunks that are visible to camera
 V unload chunks outside render distance
 V generate chunks with player movement
 V benchmark number of chunks loaded
+Multithread chunk loading
+circle chunk loading
+SSBO instead of VAO
+EBO for each face
+
