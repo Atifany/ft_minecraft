@@ -18,6 +18,7 @@ void putBenchmarkToTerminal(float deltaTime, unsigned int chunksNumber);
 void DrawChunks(std::vector<Chunk*> chunks, int modelLoc, Camera* camera, glm::mat4 vp);
 void DeleteChunks(std::vector<Chunk*> chunks);
 Chunk* FindChunkAtPos(std::vector<Chunk*> chunks, glm::vec3 _pos);
+void CheckChunksForRenderDistance(std::vector<Chunk*>* chunks, glm::vec3 curCameraChunkCoord);
 
 const std::string vertexShaderPath = "shaders/vertex_shader.shader";
 const std::string fragmentShaderPath = "shaders/fragment_shader.shader";
@@ -35,53 +36,6 @@ int main()
 	if (initGLAD(window))
 		return (-1);
 
-	// cube verticies
-	float verticies[] = {
-	//  |----coordinate----| |-texture--|
-		// Back face
-		-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,	// Bottom-left
-		 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,	// top-right
-		 0.5f, -0.5f, -0.5f,  1.0f, 0.0f,	// bottom-right         
-		 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,	// top-right
-		-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,	// bottom-left
-		-0.5f,  0.5f, -0.5f,  0.0f, 1.0f,	// top-left
-		// Front face
-		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,	// bottom-left
-		 0.5f, -0.5f,  0.5f,  1.0f, 0.0f,	// bottom-right
-		 0.5f,  0.5f,  0.5f,  1.0f, 1.0f,	// top-right
-		 0.5f,  0.5f,  0.5f,  1.0f, 1.0f,	// top-right
-		-0.5f,  0.5f,  0.5f,  0.0f, 1.0f,	// top-left
-		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,	// bottom-left
-		// Left face
-		-0.5f,  0.5f,  0.5f,  1.0f, 0.0f,	// top-right
-		-0.5f,  0.5f, -0.5f,  1.0f, 1.0f,	// top-left
-		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,	// bottom-left
-		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,	// bottom-left
-		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,	// bottom-right
-		-0.5f,  0.5f,  0.5f,  1.0f, 0.0f,	// top-right
-		// Right face
-		 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,	// top-left
-		 0.5f, -0.5f, -0.5f,  0.0f, 1.0f,	// bottom-right
-		 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,	// top-right         
-		 0.5f, -0.5f, -0.5f,  0.0f, 1.0f,	// bottom-right
-		 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,	// top-left
-		 0.5f, -0.5f,  0.5f,  0.0f, 0.0f,	// bottom-left     
-		// Bottom face
-		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,	// top-right
-		 0.5f, -0.5f, -0.5f,  1.0f, 1.0f,	// top-left
-		 0.5f, -0.5f,  0.5f,  1.0f, 0.0f,	// bottom-left
-		 0.5f, -0.5f,  0.5f,  1.0f, 0.0f,	// bottom-left
-		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,	// bottom-right
-		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,	// top-right
-		// Top face
-		-0.5f,  0.5f, -0.5f,  0.0f, 1.0f,	// top-left
-		 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,	// bottom-right
-		 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,	// top-right     
-		 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,	// bottom-right
-		-0.5f,  0.5f, -0.5f,  0.0f, 1.0f,	// top-left
-		-0.5f,  0.5f,  0.5f,  0.0f, 0.0f 	// bottom-left
-	};
-
 	// enable depth testing
 	glEnable(GL_DEPTH_TEST);
 	// cull back faces
@@ -97,22 +51,6 @@ int main()
 	}
 	shader->Use();
 
-	unsigned int VBO, VAO;
-	glGenVertexArrays(1, &VAO);
-	glGenBuffers(1, &VBO);
-
-	glBindVertexArray(VAO);
-
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(verticies), verticies, GL_STATIC_DRAW);
-
-	// setting position attribute
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
-	glEnableVertexAttribArray(0);
-	// setting texture coordinate attribute
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
-	glEnableVertexAttribArray(1);
-
 	// Textures
 	unsigned int grassSideTexture = genTexture(grassSideTexturePath);
 
@@ -122,12 +60,9 @@ int main()
 
 	// get uniforms for transform matricies
 	int mvpLoc = glGetUniformLocation(shader->ID, "mvp");
-	int viewLoc = glGetUniformLocation(shader->ID, "view");
-	int projectionLoc = glGetUniformLocation(shader->ID, "projection");
 
 	// Projection matrix shouldn't change each frame so its set before the main loop
 	projection = glm::perspective(glm::radians(45.0f), (float)(SRC_WIDTH) / (float)(SRC_HEIGHT), 0.1f, (float)(CHUNK_RENDER_DIST * CHUNK_SIZE));
-	glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
 	
 	Camera *camera = new Camera();
 	Input *input = new Input();
@@ -138,6 +73,7 @@ int main()
 
 	std::vector<Chunk*> chunks;
 
+	CheckChunksForRenderDistance(&chunks, camera->curChunkCoord);
 	float lastframe = 0.0f;
 	//Render loop
 	while(!glfwWindowShouldClose(window))
@@ -155,45 +91,17 @@ int main()
 		
 		// camera aka view matrix
 		view = glm::lookAt(camera->pos, camera->pos + camera->front, camera->up);
-		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
 
+		glm::vec3 prevCameraChunkCoord = camera->curChunkCoord;
 		// update chunk coordinate of a camera
 		if ((int)(camera->pos.x / CHUNK_SIZE) != camera->curChunkCoord.x
 			|| (int)(camera->pos.y / CHUNK_SIZE) != camera->curChunkCoord.y
 			|| (int)(camera->pos.z / CHUNK_SIZE) != camera->curChunkCoord.z)
 			camera->curChunkCoord = glm::vec3((int)(camera->pos.x / CHUNK_SIZE), (int)(camera->pos.y / CHUNK_SIZE), (int)(camera->pos.z / CHUNK_SIZE));
 		
-		// Load chunks within CHUNK_RENDER_DIST from camera
-		for (int x = camera->curChunkCoord.x - CHUNK_RENDER_DIST / 2; x < camera->curChunkCoord.x + CHUNK_RENDER_DIST / 2; x++)
-		{
-			for (int y = camera->curChunkCoord.y - CHUNK_RENDER_DIST / 2; y < camera->curChunkCoord.y + CHUNK_RENDER_DIST / 2; y++)
-			{
-				for (int z = camera->curChunkCoord.z - CHUNK_RENDER_DIST / 2; z < camera->curChunkCoord.z + CHUNK_RENDER_DIST / 2; z++)
-				{
-					if (FindChunkAtPos(chunks, glm::vec3(x * CHUNK_SIZE, y * CHUNK_SIZE, z * CHUNK_SIZE)) == NULL)
-					{
-						Chunk* chunk = new Chunk();
-						chunk->Load();
-						chunk->SetActive(true);
-						chunk->pos = glm::vec3(x * CHUNK_SIZE, y * CHUNK_SIZE, z * CHUNK_SIZE);
-						chunks.push_back(chunk);
-					}
-				}
-			}
-		}
-		// Unload chunks outside CHUNK_RENDER_DIST from camera
-		for (auto chunk = chunks.begin(); chunk != chunks.end(); )
-		{
-			if ((*chunk)->pos.x < (camera->curChunkCoord.x - CHUNK_RENDER_DIST / 2) * CHUNK_SIZE || (*chunk)->pos.x > (camera->curChunkCoord.x + CHUNK_RENDER_DIST / 2) * CHUNK_SIZE ||
-				(*chunk)->pos.y < (camera->curChunkCoord.y - CHUNK_RENDER_DIST / 2) * CHUNK_SIZE || (*chunk)->pos.y > (camera->curChunkCoord.y + CHUNK_RENDER_DIST / 2) * CHUNK_SIZE ||
-				(*chunk)->pos.z < (camera->curChunkCoord.z - CHUNK_RENDER_DIST / 2) * CHUNK_SIZE || (*chunk)->pos.z > (camera->curChunkCoord.z + CHUNK_RENDER_DIST / 2) * CHUNK_SIZE)
-			{
-				delete *chunk;
-				chunk = chunks.erase(chunk);
-			}
-			else
-				chunk++;
-		}
+		// load and unload chunks within renderdistance
+		if (prevCameraChunkCoord != camera->curChunkCoord)
+			CheckChunksForRenderDistance(&chunks, camera->curChunkCoord);
 
 		// Draw
 		glBindTexture(GL_TEXTURE_2D, grassSideTexture);
@@ -209,8 +117,6 @@ int main()
 	std::cout << std::endl;
 
 	DeleteChunks(chunks);
-	glDeleteVertexArrays(1, &VAO);
-	glDeleteBuffers(1, &VBO);
 	glfwTerminate();
 	std::cout << "exited successfully!\n";
 	return (0);
@@ -223,19 +129,56 @@ void DrawChunks(std::vector<Chunk*> chunks, int mvpLoc, Camera* camera, glm::mat
 
 	for(const auto& chunk : chunks)
 	{
-		if ((camera->pos.x + camera->right.x - camera->pos.x)*(chunk->pos.z - camera->pos.z) -
-			(camera->pos.z + camera->right.z - camera->pos.z)*(chunk->pos.x - camera->pos.x) < 0)
+		if (chunk->mesh.size() == 0)
 			continue;
 		glBindVertexArray(chunk->VAO);
 		model = glm::mat4(1.0f);
 		model = glm::translate(model, glm::vec3(chunk->pos.x, chunk->pos.y, chunk->pos.z));
-		//glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
 
 		mvp = vp * model;
 		glUniformMatrix4fv(mvpLoc, 1, GL_FALSE, glm::value_ptr(mvp));
 
 		glDrawElements(GL_TRIANGLES, chunk->indices.size(), GL_UNSIGNED_INT, 0);
 		glBindVertexArray(0);
+	}
+}
+
+// Load new chunks and unload chunks within render distance
+void CheckChunksForRenderDistance(std::vector<Chunk*>* chunks, glm::vec3 curCameraChunkCoord)
+{
+	// Load chunks within CHUNK_RENDER_DIST from camera
+	for (int x = curCameraChunkCoord.x - CHUNK_RENDER_DIST / 2; x < curCameraChunkCoord.x + CHUNK_RENDER_DIST / 2; x++)
+	{
+		for (int y = curCameraChunkCoord.y - CHUNK_RENDER_DIST / 2; y < curCameraChunkCoord.y + CHUNK_RENDER_DIST / 2; y++)
+		{
+			for (int z = curCameraChunkCoord.z - CHUNK_RENDER_DIST / 2; z < curCameraChunkCoord.z + CHUNK_RENDER_DIST / 2; z++)
+			{
+				if (FindChunkAtPos((*chunks), glm::vec3(x * CHUNK_SIZE, y * CHUNK_SIZE, z * CHUNK_SIZE)) == NULL)
+				{
+					Chunk* chunk = new Chunk();
+					chunk->pos = glm::vec3(x * CHUNK_SIZE, y * CHUNK_SIZE, z * CHUNK_SIZE);
+					chunk->Load();
+					(*chunks).push_back(chunk);
+				}
+			}
+		}
+	}
+	// Load not yet loaded chunks inside render distance and unload chunks outside CHUNK_RENDER_DIST from camera
+	for (auto chunk = (*chunks).begin(); chunk != (*chunks).end(); )
+	{
+		// load not yet loaded chunks
+		if ((*chunk)->isActive == false)
+			(*chunk)->SetActive((*chunks));
+		// unload all chunks outside rander distance
+		if ((*chunk)->pos.x < (curCameraChunkCoord.x - CHUNK_RENDER_DIST / 2) * CHUNK_SIZE || (*chunk)->pos.x > (curCameraChunkCoord.x + CHUNK_RENDER_DIST / 2) * CHUNK_SIZE ||
+			(*chunk)->pos.y < (curCameraChunkCoord.y - CHUNK_RENDER_DIST / 2) * CHUNK_SIZE || (*chunk)->pos.y > (curCameraChunkCoord.y + CHUNK_RENDER_DIST / 2) * CHUNK_SIZE ||
+			(*chunk)->pos.z < (curCameraChunkCoord.z - CHUNK_RENDER_DIST / 2) * CHUNK_SIZE || (*chunk)->pos.z > (curCameraChunkCoord.z + CHUNK_RENDER_DIST / 2) * CHUNK_SIZE)
+		{
+			delete *chunk;
+			chunk = (*chunks).erase(chunk);
+		}
+		else
+			chunk++;
 	}
 }
 
