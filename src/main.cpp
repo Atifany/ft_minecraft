@@ -323,7 +323,7 @@ void putBenchmarkToTerminal(float deltaTime, unsigned int chunksNumber)
 		std::cout << "\r                              \r"; // clear output line
 		std::cout << "\r" << (float)((int)((deltaTime * 1000) * 100)) / 100 << "ms "
 			<< (float)((int)((1 / deltaTime) * 100)) / 100 << "fps "
-			<< chunksNumber << " chunks rendered"
+			<< chunksNumber << " chunks loaded"
 			<< std::flush;
 	}
 }

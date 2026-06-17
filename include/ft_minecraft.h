@@ -15,7 +15,7 @@
 #define VERTICIES_IN_FACE_RAW 4
 #define VERTICIES_IN_FACE_DRAWN 6
 #define ITEMS_IN_VERTEX 5
-#define CHUNK_RENDER_DIST 12
+#define CHUNK_RENDER_DIST 16
 
 #define EMPTYBLOCK 0
 #define GRASSBLOCK 1
@@ -25,7 +25,7 @@ const unsigned int SRC_HEIGHT = 1080;
 const unsigned int CUBE_VERTICIES_COUNT = 36;
 
 struct Vertex
-{
+{	
 	glm::vec3 pos;
 	glm::vec2 tex;
 };
