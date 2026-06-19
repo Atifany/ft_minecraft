@@ -165,7 +165,7 @@ void CheckChunksForRenderDistance(std::vector<Chunk*>* chunks, glm::vec3 curCame
 	for (auto chunk = (*chunks).begin(); chunk != (*chunks).end(); )
 	{
 		// load not yet loaded chunks
-		if ((*chunk)->isActive == false)
+		if ((*chunk)->isReady == false)
 			(*chunk)->SetActive((*chunks));
 		// unload all chunks outside rander distance
 		if ((*chunk)->pos.x < (curCameraChunkCoord.x - CHUNK_RENDER_DIST / 2) * CHUNK_SIZE || (*chunk)->pos.x > (curCameraChunkCoord.x + CHUNK_RENDER_DIST / 2) * CHUNK_SIZE ||

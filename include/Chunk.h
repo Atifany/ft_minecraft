@@ -16,7 +16,7 @@ class Chunk
 		std::vector<float> mesh;
 		std::vector<unsigned int> indices;
 		unsigned int VAO;
-		bool isActive;
+		bool isReady;
 
 	private:
 		unsigned int VBO;

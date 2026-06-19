@@ -9,7 +9,7 @@ Chunk::Chunk()
 	this->VAO = 0;
 	this->VBO = 0;
 	this->EBO = 0;
-	this->isActive = false;
+	this->isReady = false;
 }
 
 Chunk::~Chunk()
@@ -105,7 +105,7 @@ void Chunk::SetActive(std::vector<Chunk*> chunks)
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
 	glEnableVertexAttribArray(1);
 
-	this->isActive = true;
+	this->isReady = true;
 }
 
 void InsertVerteciesToMesh(std::vector<unsigned int> &indices, std::vector<float> &mesh, const Vertex verticies[], size_t verticiesSize, glm::vec3 offset)
