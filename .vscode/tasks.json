@@ -4,10 +4,10 @@
         {
             "type": "cppbuild",
             "label": "C/C++: g++.exe build active file",
-            "command": "g++.exe",
+            "command": "c++.exe",
             "args": [
                 "-g",
-                "-std=c++17",
+                "-std=c++20",
                 "-I${workspaceFolder}/include",
                 "-L${workspaceFolder}/lib",
                 "${workspaceFolder}/src/*.cpp",
