@@ -94,9 +94,7 @@ int main()
 
 		glm::vec3 prevCameraChunkCoord = camera->curChunkCoord;
 		// update chunk coordinate of a camera
-		if ((int)(camera->pos.x / CHUNK_SIZE) != camera->curChunkCoord.x
-			|| (int)(camera->pos.y / CHUNK_SIZE) != camera->curChunkCoord.y
-			|| (int)(camera->pos.z / CHUNK_SIZE) != camera->curChunkCoord.z)
+		if (camera->pos / glm::vec3(CHUNK_SIZE) != camera->curChunkCoord)
 			camera->curChunkCoord = glm::vec3((int)(camera->pos.x / CHUNK_SIZE), (int)(camera->pos.y / CHUNK_SIZE), (int)(camera->pos.z / CHUNK_SIZE));
 		
 		// load and unload chunks within renderdistance
