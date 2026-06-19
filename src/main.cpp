@@ -18,7 +18,7 @@ void putBenchmarkToTerminal(float deltaTime, unsigned int chunksNumber);
 void DrawChunks(std::vector<Chunk*> chunks, int modelLoc, Camera* camera, glm::mat4 vp);
 void DeleteChunks(std::vector<Chunk*> chunks);
 Chunk* FindChunkAtPos(std::vector<Chunk*> chunks, glm::vec3 _pos);
-void CheckChunksForRenderDistance(std::vector<Chunk*>* chunks, glm::vec3 curCameraChunkCoord);
+void UpdateChunks(std::vector<Chunk*>* chunks, glm::vec3 curCameraChunkCoord);
 
 const std::string vertexShaderPath = "shaders/vertex_shader.shader";
 const std::string fragmentShaderPath = "shaders/fragment_shader.shader";
@@ -73,7 +73,7 @@ int main()
 
 	std::vector<Chunk*> chunks;
 
-	CheckChunksForRenderDistance(&chunks, camera->curChunkCoord);
+	UpdateChunks(&chunks, camera->curChunkCoord);
 	float lastframe = 0.0f;
 	//Render loop
 	while(!glfwWindowShouldClose(window))
@@ -99,7 +99,7 @@ int main()
 		
 		// load and unload chunks within renderdistance
 		if (prevCameraChunkCoord != camera->curChunkCoord)
-			CheckChunksForRenderDistance(&chunks, camera->curChunkCoord);
+			UpdateChunks(&chunks, camera->curChunkCoord);
 
 		// Draw
 		glBindTexture(GL_TEXTURE_2D, grassSideTexture);
@@ -127,7 +127,7 @@ void DrawChunks(std::vector<Chunk*> chunks, int mvpLoc, Camera* camera, glm::mat
 
 	for(const auto& chunk : chunks)
 	{
-		if (chunk->mesh.size() == 0)
+		if (chunk->indices.size() == 0)
 			continue;
 		glBindVertexArray(chunk->VAO);
 		model = glm::mat4(1.0f);
@@ -142,7 +142,7 @@ void DrawChunks(std::vector<Chunk*> chunks, int mvpLoc, Camera* camera, glm::mat
 }
 
 // Load new chunks and unload chunks within render distance
-void CheckChunksForRenderDistance(std::vector<Chunk*>* chunks, glm::vec3 curCameraChunkCoord)
+void UpdateChunks(std::vector<Chunk*>* chunks, glm::vec3 curCameraChunkCoord)
 {
 	// Load chunks within CHUNK_RENDER_DIST from camera
 	for (int x = curCameraChunkCoord.x - CHUNK_RENDER_DIST / 2; x < curCameraChunkCoord.x + CHUNK_RENDER_DIST / 2; x++)
@@ -155,7 +155,7 @@ void CheckChunksForRenderDistance(std::vector<Chunk*>* chunks, glm::vec3 curCame
 				{
 					Chunk* chunk = new Chunk();
 					chunk->pos = glm::vec3(x * CHUNK_SIZE, y * CHUNK_SIZE, z * CHUNK_SIZE);
-					chunk->Load();
+					chunk->GenVoxels();
 					(*chunks).push_back(chunk);
 				}
 			}
@@ -166,7 +166,10 @@ void CheckChunksForRenderDistance(std::vector<Chunk*>* chunks, glm::vec3 curCame
 	{
 		// load not yet loaded chunks
 		if ((*chunk)->isReady == false)
-			(*chunk)->SetActive((*chunks));
+		{
+			(*chunk)->GenMesh((*chunks));
+			(*chunk)->GenBuffers();
+		}
 		// unload all chunks outside rander distance
 		if ((*chunk)->pos.x < (curCameraChunkCoord.x - CHUNK_RENDER_DIST / 2) * CHUNK_SIZE || (*chunk)->pos.x > (curCameraChunkCoord.x + CHUNK_RENDER_DIST / 2) * CHUNK_SIZE ||
 			(*chunk)->pos.y < (curCameraChunkCoord.y - CHUNK_RENDER_DIST / 2) * CHUNK_SIZE || (*chunk)->pos.y > (curCameraChunkCoord.y + CHUNK_RENDER_DIST / 2) * CHUNK_SIZE ||

@@ -21,7 +21,7 @@ Chunk::~Chunk()
 	this->mesh.clear();
 }
 
-void Chunk::Load()
+void Chunk::GenVoxels()
 {
 	for(int y = 0; y < CHUNK_SIZE; y++)
 	{
@@ -38,7 +38,7 @@ void Chunk::Load()
 	}
 }
 
-void Chunk::SetActive(std::vector<Chunk*> chunks)
+void Chunk::GenMesh(std::vector<Chunk*> chunks)
 {
 	// if no mesh loaded then load new mesh
 	if (this->VAO != 0 || this->mesh.size() != 0)
@@ -85,7 +85,10 @@ void Chunk::SetActive(std::vector<Chunk*> chunks)
 			}
 		}
 	}
+}
 
+void Chunk::GenBuffers()
+{
 	glGenVertexArrays(1, &(this->VAO));
 	glGenBuffers(1, &(this->VBO));
 	glGenBuffers(1, &(this->EBO));
