@@ -107,11 +107,9 @@ int main()
 
 		if (isWorking == false && chunksBuf.size() != 0)
 		{
-			for (auto chunk : chunksBuf)
-				if (chunk->isReady == false)
-					chunk->GenBuffers();
-			chunks.insert(chunks.end(), chunksBuf.begin(), chunksBuf.end());
-			chunksBuf.clear();
+			chunksBuf[0]->GenBuffers();
+			chunks.insert(chunks.end(), chunksBuf[0]);
+			chunksBuf.erase(chunksBuf.begin());
 		}
 
 		// Draw
