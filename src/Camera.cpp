@@ -6,10 +6,11 @@ Camera::Camera()
 	this->front = glm::vec3(0.0f, 0.0f, -1.0f);
 	this->right = glm::cross(this->up, this->front);
 	this->pos = glm::vec3(0.0f, 0.0f, 3.0f);
-	this->curChunkCoord = glm::vec3(0, 0, 0);
+	this->curChunkPos = glm::vec3(0, 0, 0);
 	this->speed = 10.0f;
 	this->sensetivity = 0.1f;
 	this->isWireFrameModeOn = false;
+	this->isInNewChunk = false;
 
 	this->yaw = -90.0f;
 	this->pitch = 0.0f;
@@ -45,4 +46,17 @@ void Camera::MouseInput(std::pair<float, float> mousePos)
 	direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
 	this->front = glm::normalize(direction);
 	this->right = glm::cross(this->up, this->front);
+}
+
+void Camera::UpdateChunkPos()
+{
+	this->isInNewChunk = false;
+	glm::vec3 prevCameraChunkPos = this->curChunkPos;
+	if ((int)(this->pos.x / CHUNK_SIZE) != this->curChunkPos.x ||
+		(int)(this->pos.y / CHUNK_SIZE) != this->curChunkPos.y ||
+		(int)(this->pos.z / CHUNK_SIZE) != this->curChunkPos.z)
+	{
+		this->curChunkPos = glm::vec3((int)(this->pos.x / CHUNK_SIZE), (int)(this->pos.y / CHUNK_SIZE), (int)(this->pos.z / CHUNK_SIZE));
+		this->isInNewChunk = true;
+	}
 }

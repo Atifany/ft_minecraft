@@ -80,7 +80,7 @@ int main()
 	float lastChunkLoaderTime = 0.0f;
 
 	bool isWorking = false;
-	chunkLoader = std::jthread(UpdateChunks, chunks, &chunksBuf, camera->curChunkCoord, &isWorking, &chunksToDelete);
+	chunkLoader = std::jthread(UpdateChunks, chunks, &chunksBuf, camera->curChunkPos, &isWorking, &chunksToDelete);
 
 	float lastframe = 0.0f;
 	//Render loop
@@ -99,21 +99,19 @@ int main()
 		
 		// camera aka view matrix
 		view = glm::lookAt(camera->pos, camera->pos + camera->front, camera->up);
-
-		glm::vec3 prevCameraChunkCoord = camera->curChunkCoord;
-		// update chunk coordinate of a camera
-		if (camera->pos / glm::vec3(CHUNK_SIZE) != camera->curChunkCoord)
-			camera->curChunkCoord = glm::vec3((int)(camera->pos.x / CHUNK_SIZE), (int)(camera->pos.y / CHUNK_SIZE), (int)(camera->pos.z / CHUNK_SIZE));
+		
+		// update cam pos
+		camera->UpdateChunkPos();
 
 		// tell chunkLoader to run again if more chunks need to be loaded
-		if (prevCameraChunkCoord != camera->curChunkCoord && isWorking == true)
+		if (camera->isInNewChunk == true && isWorking == true)
 			isAwatingChunkLoader = true;	
 		// load and unload chunks within renderdistance
-		if ((prevCameraChunkCoord != camera->curChunkCoord || isAwatingChunkLoader == true) && isWorking == false)
+		if ((camera->isInNewChunk == true || isAwatingChunkLoader == true) && isWorking == false)
 		{
 			isAwatingChunkLoader = false;
 			chunkLoaderTimeBegin = glfwGetTime();
-			chunkLoader = std::jthread(UpdateChunks, chunks, &chunksBuf, camera->curChunkCoord, &isWorking, &chunksToDelete);
+			chunkLoader = std::jthread(UpdateChunks, chunks, &chunksBuf, camera->curChunkPos, &isWorking, &chunksToDelete);
 		}
 
 		// join chunks generated in a parallel thread to main chunk list
@@ -184,7 +182,6 @@ void DrawChunks(std::list<Chunk*> chunks, int mvpLoc, Camera* camera, glm::mat4 
 void UpdateChunks(std::list<Chunk*> chunks, std::list<Chunk*>* chunksBuf, glm::vec3 curCameraChunkCoord, bool* isWorking, std::list<unsigned int>* chunksToDelete)
 {
 	*isWorking = true;
-
 	// unload chunks outside CHUNK_RENDER_DIST from camera
 	for (auto& chunk : chunks)
 	{
