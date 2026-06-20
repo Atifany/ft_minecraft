@@ -7,6 +7,7 @@
 #include <sstream>
 #include <thread>
 #include <list>
+#include <algorithm>
 #include <GLAD/glad.h>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>

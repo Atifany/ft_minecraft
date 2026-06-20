@@ -18,7 +18,7 @@ void putBenchmarkToTerminal(float deltaTime, unsigned int chunksNumberm, float l
 void DrawChunks(std::list<Chunk*> chunks, int modelLoc, Camera* camera, glm::mat4 vp);
 void DeleteChunks(std::list<Chunk*> chunks);
 Chunk* FindChunkAtPos(std::list<Chunk*> chunks, glm::vec3 _pos);
-void UpdateChunks(std::list<Chunk*> chunks, std::list<Chunk*>* chunksBuf, glm::vec3 curCameraChunkCoord, bool* isWorking);
+void UpdateChunks(std::list<Chunk*> chunks, std::list<Chunk*>* chunksBuf, glm::vec3 curCameraChunkCoord, bool* isWorking, std::list<unsigned int>* chunksToDelete);
 
 const std::string vertexShaderPath = "shaders/vertex_shader.shader";
 const std::string fragmentShaderPath = "shaders/fragment_shader.shader";
@@ -71,14 +71,16 @@ int main()
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); // capture and hide cursor
 	glfwSetCursorPosCallback(window, mouse_callback);
 
-	std::list<Chunk*> chunks;		// actual chunks drawn
-	std::list<Chunk*> chunksBuf;	// buffer for chunkLoader
+	std::list<Chunk*> chunks;				// actual chunks drawn
+	std::list<Chunk*> chunksBuf;			// buffer for chunkLoader
+	std::list<unsigned int> chunksToDelete;	// stores VAOs of chunks to delete
 	std::jthread chunkLoader;
+	bool isAwatingChunkLoader = false;		// if new chunks need to be generated, but chunkloader is busy, then tell him to run UpdateChunks again when finished
 	float chunkLoaderTimeBegin = 0.0f;
 	float lastChunkLoaderTime = 0.0f;
 
 	bool isWorking = false;
-	chunkLoader = std::jthread(UpdateChunks, chunks, &chunksBuf, camera->curChunkCoord, &isWorking);
+	chunkLoader = std::jthread(UpdateChunks, chunks, &chunksBuf, camera->curChunkCoord, &isWorking, &chunksToDelete);
 
 	float lastframe = 0.0f;
 	//Render loop
@@ -103,11 +105,15 @@ int main()
 		if (camera->pos / glm::vec3(CHUNK_SIZE) != camera->curChunkCoord)
 			camera->curChunkCoord = glm::vec3((int)(camera->pos.x / CHUNK_SIZE), (int)(camera->pos.y / CHUNK_SIZE), (int)(camera->pos.z / CHUNK_SIZE));
 
+		// tell chunkLoader to run again if more chunks need to be loaded
+		if (prevCameraChunkCoord != camera->curChunkCoord && isWorking == true)
+			isAwatingChunkLoader = true;	
 		// load and unload chunks within renderdistance
-		if (prevCameraChunkCoord != camera->curChunkCoord && isWorking == false)
+		if ((prevCameraChunkCoord != camera->curChunkCoord || isAwatingChunkLoader == true) && isWorking == false)
 		{
+			isAwatingChunkLoader = false;
 			chunkLoaderTimeBegin = glfwGetTime();
-			chunkLoader = std::jthread(UpdateChunks, chunks, &chunksBuf, camera->curChunkCoord, &isWorking);
+			chunkLoader = std::jthread(UpdateChunks, chunks, &chunksBuf, camera->curChunkCoord, &isWorking, &chunksToDelete);
 		}
 
 		// join chunks generated in a parallel thread to main chunk list
@@ -117,6 +123,21 @@ int main()
 			for (auto& chunk : chunksBuf)
 				chunk->GenBuffers();
 			chunks.splice(chunks.end(), chunksBuf);
+		}
+		// delete chunks outside render distance
+		if (chunksToDelete.size() > 0 && isWorking == false)
+		{
+			for (auto chunk = chunks.begin(); chunk != chunks.end(); )
+			{
+				if (std::find(chunksToDelete.begin(), chunksToDelete.end(), (*chunk)->VAO) != chunksToDelete.end())
+				{
+					delete *chunk;
+					chunk = chunks.erase(chunk);
+				}
+				else
+					chunk++;
+			}
+			chunksToDelete.clear();
 		}
 
 		// Draw
@@ -143,10 +164,10 @@ void DrawChunks(std::list<Chunk*> chunks, int mvpLoc, Camera* camera, glm::mat4 
 	glm::mat4 model = glm::mat4(1.0f);
 	glm::mat4 mvp = glm::mat4(1.0f);
 
-	for(const auto& chunk : chunks)
+	for (auto& chunk : chunks)
 	{
 		if (chunk->indices.size() == 0 && chunk->isReady == true)
-			continue;
+			{chunk++; continue;}
 		glBindVertexArray(chunk->VAO);
 		model = glm::mat4(1.0f);
 		model = glm::translate(model, glm::vec3(chunk->pos.x, chunk->pos.y, chunk->pos.z));
@@ -160,9 +181,21 @@ void DrawChunks(std::list<Chunk*> chunks, int mvpLoc, Camera* camera, glm::mat4 
 }
 
 // Load new chunks and unload chunks within render distance
-void UpdateChunks(std::list<Chunk*> chunks, std::list<Chunk*>* chunksBuf, glm::vec3 curCameraChunkCoord, bool* isWorking)
+void UpdateChunks(std::list<Chunk*> chunks, std::list<Chunk*>* chunksBuf, glm::vec3 curCameraChunkCoord, bool* isWorking, std::list<unsigned int>* chunksToDelete)
 {
 	*isWorking = true;
+
+	// unload chunks outside CHUNK_RENDER_DIST from camera
+	for (auto& chunk : chunks)
+	{
+		if (chunk->pos.x < (curCameraChunkCoord.x - CHUNK_RENDER_DIST / 2) * CHUNK_SIZE || chunk->pos.x > (curCameraChunkCoord.x + CHUNK_RENDER_DIST / 2) * CHUNK_SIZE ||
+			chunk->pos.y < (curCameraChunkCoord.y - CHUNK_RENDER_DIST / 2) * CHUNK_SIZE || chunk->pos.y > (curCameraChunkCoord.y + CHUNK_RENDER_DIST / 2) * CHUNK_SIZE ||
+			chunk->pos.z < (curCameraChunkCoord.z - CHUNK_RENDER_DIST / 2) * CHUNK_SIZE || chunk->pos.z > (curCameraChunkCoord.z + CHUNK_RENDER_DIST / 2) * CHUNK_SIZE)
+		{
+			(*chunksToDelete).push_back(chunk->VAO);
+		}
+	}
+
 	// Load chunks within CHUNK_RENDER_DIST from camera
 	for (int x = curCameraChunkCoord.x - CHUNK_RENDER_DIST / 2; x < curCameraChunkCoord.x + CHUNK_RENDER_DIST / 2; x++)
 	{
@@ -180,24 +213,16 @@ void UpdateChunks(std::list<Chunk*> chunks, std::list<Chunk*>* chunksBuf, glm::v
 			}
 		}
 	}
+
+	// Load not yet loaded chunks inside render distance and unload chunks outside CHUNK_RENDER_DIST from camera
 	std::list<Chunk*> combinedChunks;
 	combinedChunks.insert(combinedChunks.end(), chunks.begin(), chunks.end());
 	combinedChunks.insert(combinedChunks.end(), (*chunksBuf).begin(), (*chunksBuf).end());
-	// Load not yet loaded chunks inside render distance and unload chunks outside CHUNK_RENDER_DIST from camera
 	for (auto chunk = (*chunksBuf).begin(); chunk != (*chunksBuf).end(); )
 	{
 		// load not yet loaded chunks
 		if ((*chunk)->isReady == false)
 			(*chunk)->GenMesh(combinedChunks);
-		// unload all chunks outside rander distance
-		// if ((*chunk)->pos.x < (curCameraChunkCoord.x - CHUNK_RENDER_DIST / 2) * CHUNK_SIZE || (*chunk)->pos.x > (curCameraChunkCoord.x + CHUNK_RENDER_DIST / 2) * CHUNK_SIZE ||
-		// 	(*chunk)->pos.y < (curCameraChunkCoord.y - CHUNK_RENDER_DIST / 2) * CHUNK_SIZE || (*chunk)->pos.y > (curCameraChunkCoord.y + CHUNK_RENDER_DIST / 2) * CHUNK_SIZE ||
-		// 	(*chunk)->pos.z < (curCameraChunkCoord.z - CHUNK_RENDER_DIST / 2) * CHUNK_SIZE || (*chunk)->pos.z > (curCameraChunkCoord.z + CHUNK_RENDER_DIST / 2) * CHUNK_SIZE)
-		// {
-		// 	delete *chunk;
-		// 	chunk = (*chunks).erase(chunk);
-		// }
-		// else
 		chunk++;
 	}
 	*isWorking = false;
