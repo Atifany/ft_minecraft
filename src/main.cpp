@@ -15,10 +15,10 @@ unsigned int genTexture(std::string texturePath);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
 void putBenchmarkToTerminal(float deltaTime, unsigned int chunksNumber);
-void DrawChunks(std::vector<Chunk*> chunks, int modelLoc, Camera* camera, glm::mat4 vp);
-void DeleteChunks(std::vector<Chunk*> chunks);
-Chunk* FindChunkAtPos(std::vector<Chunk*> chunks, glm::vec3 _pos);
-void UpdateChunks(std::vector<Chunk*> chunks, std::vector<Chunk*>* chunksBuf, glm::vec3 curCameraChunkCoord, bool* isWorking);
+void DrawChunks(std::list<Chunk*> chunks, int modelLoc, Camera* camera, glm::mat4 vp);
+void DeleteChunks(std::list<Chunk*> chunks);
+Chunk* FindChunkAtPos(std::list<Chunk*> chunks, glm::vec3 _pos);
+void UpdateChunks(std::list<Chunk*> chunks, std::list<Chunk*>* chunksBuf, glm::vec3 curCameraChunkCoord, bool* isWorking);
 
 const std::string vertexShaderPath = "shaders/vertex_shader.shader";
 const std::string fragmentShaderPath = "shaders/fragment_shader.shader";
@@ -71,12 +71,12 @@ int main()
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); // capture and hide cursor
 	glfwSetCursorPosCallback(window, mouse_callback);
 
-	std::vector<Chunk*> chunks;
-	std::vector<Chunk*> chunksBuf;
+	std::list<Chunk*> chunks;		// actual chunks drawn
+	std::list<Chunk*> chunksBuf;	// buffer for chunkLoader
+	std::jthread chunkLoader;
 
 	bool isWorking = false;
-
-	std::jthread worker(UpdateChunks, chunks, &chunksBuf, camera->curChunkCoord, &isWorking);
+	chunkLoader = std::jthread(UpdateChunks, chunks, &chunksBuf, camera->curChunkCoord, &isWorking);
 
 	float lastframe = 0.0f;
 	//Render loop
@@ -100,16 +100,17 @@ int main()
 		// update chunk coordinate of a camera
 		if (camera->pos / glm::vec3(CHUNK_SIZE) != camera->curChunkCoord)
 			camera->curChunkCoord = glm::vec3((int)(camera->pos.x / CHUNK_SIZE), (int)(camera->pos.y / CHUNK_SIZE), (int)(camera->pos.z / CHUNK_SIZE));
-		
-		// load and unload chunks within renderdistance
-		if (prevCameraChunkCoord != camera->curChunkCoord)
-			std::jthread worker(UpdateChunks, chunks, &chunksBuf, camera->curChunkCoord, &isWorking);
 
+		// load and unload chunks within renderdistance
+		if (prevCameraChunkCoord != camera->curChunkCoord && isWorking == false)
+			chunkLoader = std::jthread(UpdateChunks, chunks, &chunksBuf, camera->curChunkCoord, &isWorking);
+
+		// join chunks generated in a parallel thread to main chunk list
 		if (isWorking == false && chunksBuf.size() != 0)
 		{
-			chunksBuf[0]->GenBuffers();
-			chunks.insert(chunks.end(), chunksBuf[0]);
-			chunksBuf.erase(chunksBuf.begin());
+			for (auto& chunk : chunksBuf)
+				chunk->GenBuffers();
+			chunks.splice(chunks.end(), chunksBuf);
 		}
 
 		// Draw
@@ -131,14 +132,14 @@ int main()
 	return (0);
 }
 
-void DrawChunks(std::vector<Chunk*> chunks, int mvpLoc, Camera* camera, glm::mat4 vp)
+void DrawChunks(std::list<Chunk*> chunks, int mvpLoc, Camera* camera, glm::mat4 vp)
 {
 	glm::mat4 model = glm::mat4(1.0f);
 	glm::mat4 mvp = glm::mat4(1.0f);
 
 	for(const auto& chunk : chunks)
 	{
-		if (chunk->indices.size() == 0)
+		if (chunk->indices.size() == 0 && chunk->isReady == true)
 			continue;
 		glBindVertexArray(chunk->VAO);
 		model = glm::mat4(1.0f);
@@ -153,7 +154,7 @@ void DrawChunks(std::vector<Chunk*> chunks, int mvpLoc, Camera* camera, glm::mat
 }
 
 // Load new chunks and unload chunks within render distance
-void UpdateChunks(std::vector<Chunk*> chunks, std::vector<Chunk*>* chunksBuf, glm::vec3 curCameraChunkCoord, bool* isWorking)
+void UpdateChunks(std::list<Chunk*> chunks, std::list<Chunk*>* chunksBuf, glm::vec3 curCameraChunkCoord, bool* isWorking)
 {
 	*isWorking = true;
 	// Load chunks within CHUNK_RENDER_DIST from camera
@@ -173,13 +174,15 @@ void UpdateChunks(std::vector<Chunk*> chunks, std::vector<Chunk*>* chunksBuf, gl
 			}
 		}
 	}
-	chunks.insert(chunks.end(), (*chunksBuf).begin(), (*chunksBuf).end());
+	std::list<Chunk*> combinedChunks;
+	combinedChunks.insert(combinedChunks.end(), chunks.begin(), chunks.end());
+	combinedChunks.insert(combinedChunks.end(), (*chunksBuf).begin(), (*chunksBuf).end());
 	// Load not yet loaded chunks inside render distance and unload chunks outside CHUNK_RENDER_DIST from camera
 	for (auto chunk = (*chunksBuf).begin(); chunk != (*chunksBuf).end(); )
 	{
 		// load not yet loaded chunks
 		if ((*chunk)->isReady == false)
-			(*chunk)->GenMesh(chunks);
+			(*chunk)->GenMesh(combinedChunks);
 		// unload all chunks outside rander distance
 		// if ((*chunk)->pos.x < (curCameraChunkCoord.x - CHUNK_RENDER_DIST / 2) * CHUNK_SIZE || (*chunk)->pos.x > (curCameraChunkCoord.x + CHUNK_RENDER_DIST / 2) * CHUNK_SIZE ||
 		// 	(*chunk)->pos.y < (curCameraChunkCoord.y - CHUNK_RENDER_DIST / 2) * CHUNK_SIZE || (*chunk)->pos.y > (curCameraChunkCoord.y + CHUNK_RENDER_DIST / 2) * CHUNK_SIZE ||
@@ -189,20 +192,23 @@ void UpdateChunks(std::vector<Chunk*> chunks, std::vector<Chunk*>* chunksBuf, gl
 		// 	chunk = (*chunks).erase(chunk);
 		// }
 		// else
-			chunk++;
+		chunk++;
 	}
 	*isWorking = false;
 }
 
-void DeleteChunks(std::vector<Chunk*> chunks)
+void DeleteChunks(std::list<Chunk*> chunks)
 {
-	for(int i = 0; i < chunks.size(); i++)
-		delete chunks[i];
+	for (auto chunk = chunks.begin(); chunk != chunks.end(); )
+	{
+		delete *chunk;
+		chunk = chunks.erase(chunk);
+	}
 }
 
-Chunk* FindChunkAtPos(std::vector<Chunk*> chunks, glm::vec3 _pos)
+Chunk* FindChunkAtPos(std::list<Chunk*> chunks, glm::vec3 _pos)
 {
-	for (Chunk* chunk : chunks)
+	for (auto& chunk : chunks)
 		if (chunk->pos == _pos)
 			return chunk;
 	return NULL;

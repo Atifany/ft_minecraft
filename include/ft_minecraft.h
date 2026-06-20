@@ -6,6 +6,7 @@
 #include <fstream>
 #include <sstream>
 #include <thread>
+#include <list>
 #include <GLAD/glad.h>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
@@ -21,6 +22,7 @@
 #define EMPTYBLOCK 0
 #define GRASSBLOCK 1
 
+const unsigned int MAX_CHUNKS_LOADED = CHUNK_RENDER_DIST * CHUNK_RENDER_DIST * CHUNK_RENDER_DIST * 4;
 const unsigned int SRC_WIDTH = 1920;
 const unsigned int SRC_HEIGHT = 1080;
 const unsigned int CUBE_VERTICIES_COUNT = 36;

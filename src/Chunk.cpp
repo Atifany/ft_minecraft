@@ -1,7 +1,6 @@
 #include "../include/Chunk.h"
 
 void InsertVerteciesToMesh(std::vector<unsigned int> &indices, std::vector<float> &mesh, const Vertex verticies[], size_t verticiesSize, glm::vec3 offset);
-Chunk* _FindChunkAtPos(std::vector<Chunk*> chunks, glm::vec3 _pos);
 
 Chunk::Chunk()
 {
@@ -38,18 +37,32 @@ void Chunk::GenVoxels()
 	}
 }
 
-void Chunk::GenMesh(std::vector<Chunk*> chunks)
+void Chunk::GenMesh(std::list<Chunk*> chunks)
 {
 	// if no mesh loaded then load new mesh
 	if (this->VAO != 0 || this->mesh.size() != 0)
 		return ;
 
-	Chunk* topChunkNeighbour	 = _FindChunkAtPos(chunks, glm::vec3(this->pos.x, this->pos.y + CHUNK_SIZE, this->pos.z));
-	Chunk* bottomChunkNeighbour	 = _FindChunkAtPos(chunks, glm::vec3(this->pos.x, this->pos.y - CHUNK_SIZE, this->pos.z));
-	Chunk* leftChunkNeighbour	 = _FindChunkAtPos(chunks, glm::vec3(this->pos.x - CHUNK_SIZE, this->pos.y, this->pos.z));
-	Chunk* rightChunkNeighbour	 = _FindChunkAtPos(chunks, glm::vec3(this->pos.x + CHUNK_SIZE, this->pos.y, this->pos.z));
-	Chunk* frontChunkNeighbour	 = _FindChunkAtPos(chunks, glm::vec3(this->pos.x, this->pos.y, this->pos.z + CHUNK_SIZE));
-	Chunk* backChunkNeighbour	 = _FindChunkAtPos(chunks, glm::vec3(this->pos.x, this->pos.y, this->pos.z - CHUNK_SIZE));
+	Chunk* topChunkNeighbour = NULL; Chunk* bottomChunkNeighbour = NULL;
+	Chunk* leftChunkNeighbour = NULL; Chunk* rightChunkNeighbour = NULL;
+	Chunk* frontChunkNeighbour = NULL; Chunk* backChunkNeighbour = NULL;
+
+	for (auto& chunk : chunks)
+	{
+		if (chunk->pos == glm::vec3(this->pos.x, this->pos.y + CHUNK_SIZE, this->pos.z))
+			topChunkNeighbour = chunk;
+		if (chunk->pos == glm::vec3(this->pos.x, this->pos.y - CHUNK_SIZE, this->pos.z))
+			bottomChunkNeighbour = chunk;
+		if (chunk->pos == glm::vec3(this->pos.x - CHUNK_SIZE, this->pos.y, this->pos.z))
+			leftChunkNeighbour = chunk;
+		if (chunk->pos == glm::vec3(this->pos.x + CHUNK_SIZE, this->pos.y, this->pos.z))
+			rightChunkNeighbour = chunk;
+		if (chunk->pos == glm::vec3(this->pos.x, this->pos.y, this->pos.z + CHUNK_SIZE))
+			frontChunkNeighbour = chunk;
+		if (chunk->pos == glm::vec3(this->pos.x, this->pos.y, this->pos.z - CHUNK_SIZE))
+			backChunkNeighbour = chunk;
+	}
+
 	for (int y = 0; y < CHUNK_SIZE; y++)
 	{
 		for (int z = 0; z < CHUNK_SIZE; z++)
@@ -125,12 +138,4 @@ void InsertVerteciesToMesh(std::vector<unsigned int> &indices, std::vector<float
 	int indiceOffset = (((mesh.size() / ITEMS_IN_VERTEX) / VERTICIES_IN_FACE_RAW) - 1) * VERTICIES_IN_FACE_RAW;
 	for (int j = 0; j < VERTICIES_IN_FACE_DRAWN; j++)
 		indices.insert(indices.end(), indicesFace[j] + indiceOffset);
-}
-
-Chunk* _FindChunkAtPos(std::vector<Chunk*> chunks, glm::vec3 _pos)
-{
-	for (Chunk* chunk : chunks)
-		if (chunk->pos == _pos)
-			return chunk;
-	return NULL;
 }

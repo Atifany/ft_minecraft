@@ -9,7 +9,7 @@ class Chunk
 		Chunk();
 		~Chunk();
 		void GenVoxels();
-		void GenMesh(std::vector<Chunk*> chunks);
+		void GenMesh(std::list<Chunk*> chunks);
 		void GenBuffers();
 
 		glm::vec3 pos;
