@@ -14,7 +14,7 @@ int initGLAD(GLFWwindow* window);
 unsigned int genTexture(std::string texturePath);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
-void putBenchmarkToTerminal(float deltaTime, unsigned int chunksNumber);
+void putBenchmarkToTerminal(float deltaTime, unsigned int chunksNumberm, float lastChunkLoaderTime);
 void DrawChunks(std::list<Chunk*> chunks, int modelLoc, Camera* camera, glm::mat4 vp);
 void DeleteChunks(std::list<Chunk*> chunks);
 Chunk* FindChunkAtPos(std::list<Chunk*> chunks, glm::vec3 _pos);
@@ -74,6 +74,8 @@ int main()
 	std::list<Chunk*> chunks;		// actual chunks drawn
 	std::list<Chunk*> chunksBuf;	// buffer for chunkLoader
 	std::jthread chunkLoader;
+	float chunkLoaderTimeBegin = 0.0f;
+	float lastChunkLoaderTime = 0.0f;
 
 	bool isWorking = false;
 	chunkLoader = std::jthread(UpdateChunks, chunks, &chunksBuf, camera->curChunkCoord, &isWorking);
@@ -84,7 +86,7 @@ int main()
 	{
 		deltaTime = glfwGetTime() - lastframe;
 		lastframe = glfwGetTime();
-		putBenchmarkToTerminal(deltaTime, chunks.size());
+		putBenchmarkToTerminal(deltaTime, chunks.size(), lastChunkLoaderTime);
 
 		processInput(window, camera, input);
 		input->UpdateKeys();
@@ -103,11 +105,15 @@ int main()
 
 		// load and unload chunks within renderdistance
 		if (prevCameraChunkCoord != camera->curChunkCoord && isWorking == false)
+		{
+			chunkLoaderTimeBegin = glfwGetTime();
 			chunkLoader = std::jthread(UpdateChunks, chunks, &chunksBuf, camera->curChunkCoord, &isWorking);
+		}
 
 		// join chunks generated in a parallel thread to main chunk list
 		if (isWorking == false && chunksBuf.size() != 0)
 		{
+			lastChunkLoaderTime = glfwGetTime() - chunkLoaderTimeBegin;
 			for (auto& chunk : chunksBuf)
 				chunk->GenBuffers();
 			chunks.splice(chunks.end(), chunksBuf);
@@ -329,7 +335,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 	input->UpdateKeysFromInput(key, action);
 }
 
-void putBenchmarkToTerminal(float deltaTime, unsigned int chunksNumber)
+void putBenchmarkToTerminal(float deltaTime, unsigned int chunksNumber, float lastChunkLoaderTime)
 {
 	// update benchmark every second
 	static int wholeSecPassed = 0;
@@ -339,9 +345,10 @@ void putBenchmarkToTerminal(float deltaTime, unsigned int chunksNumber)
 	{
 		wholeSecPassed = (int)curTime;
 		std::cout << "\r                              \r"; // clear output line
-		std::cout << "\r" << (float)((int)((deltaTime * 1000) * 100)) / 100 << "ms "
-			<< (float)((int)((1 / deltaTime) * 100)) / 100 << "fps "
-			<< chunksNumber << " chunks loaded"
+		std::cout << "\r" << (float)((int)((deltaTime * 1000) * 100)) / 100 << "ms | "
+			<< (float)((int)((1 / deltaTime) * 100)) / 100 << "fps | "
+			<< chunksNumber << " chunks loaded | "
+			<< (float)((int)((lastChunkLoaderTime * 1000) * 100)) / 100 << "ms last chunkLoader took"
 			<< std::flush;
 	}
 }

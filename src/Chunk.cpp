@@ -47,6 +47,7 @@ void Chunk::GenMesh(std::list<Chunk*> chunks)
 	Chunk* leftChunkNeighbour = NULL; Chunk* rightChunkNeighbour = NULL;
 	Chunk* frontChunkNeighbour = NULL; Chunk* backChunkNeighbour = NULL;
 
+	// find adjacent chunks
 	for (auto& chunk : chunks)
 	{
 		if (chunk->pos == glm::vec3(this->pos.x, this->pos.y + CHUNK_SIZE, this->pos.z))
