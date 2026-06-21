@@ -79,7 +79,7 @@ int main()
 	float chunkLoaderTimeBegin = 0.0f;
 	float lastChunkLoaderTime = 0.0f;
 
-	bool isWorking = false;
+	bool isWorking = true;
 	chunkLoader = std::jthread(UpdateChunks, chunks, &chunksBuf, camera->curChunkPos, &isWorking, &chunksToDelete);
 
 	float lastframe = 0.0f;
@@ -111,6 +111,7 @@ int main()
 		{
 			isAwatingChunkLoader = false;
 			chunkLoaderTimeBegin = glfwGetTime();
+			isWorking = true;
 			chunkLoader = std::jthread(UpdateChunks, chunks, &chunksBuf, camera->curChunkPos, &isWorking, &chunksToDelete);
 		}
 
@@ -181,7 +182,6 @@ void DrawChunks(std::list<Chunk*> chunks, int mvpLoc, Camera* camera, glm::mat4 
 // Load new chunks and unload chunks within render distance
 void UpdateChunks(std::list<Chunk*> chunks, std::list<Chunk*>* chunksBuf, glm::vec3 curCameraChunkCoord, bool* isWorking, std::list<unsigned int>* chunksToDelete)
 {
-	*isWorking = true;
 	// unload chunks outside CHUNK_RENDER_DIST from camera
 	for (auto& chunk : chunks)
 	{
