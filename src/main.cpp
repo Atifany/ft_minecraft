@@ -40,6 +40,8 @@ int main()
 	glEnable(GL_CULL_FACE);
 	glCullFace(GL_BACK);
 	glFrontFace(GL_CCW);
+	// anti-aliasing
+	glEnable(GL_MULTISAMPLE);
 
 	Shader *shader = new Shader(vertexShaderPath, fragmentShaderPath);
 	if (shader->ID == 0)
@@ -183,6 +185,7 @@ GLFWwindow* initGLFW()
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+	glfwWindowHint(GLFW_SAMPLES, MSAA_SAMPLES);						// anti-aliasing
 
 	// Init window
 	GLFWwindow* window = glfwCreateWindow(SRC_WIDTH, SRC_HEIGHT, "ft_minecraft", NULL, NULL);

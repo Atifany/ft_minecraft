@@ -20,6 +20,8 @@
 #define ITEMS_IN_VERTEX 5
 #define CHUNK_RENDER_DIST 16
 
+#define MSAA_SAMPLES 4
+
 #define EMPTYBLOCK 0
 #define GRASSBLOCK 1
 
