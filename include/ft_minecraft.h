@@ -8,7 +8,7 @@
 #include <thread>
 #include <list>
 #include <algorithm>
-#include <GLAD/glad.h>
+#include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -18,7 +18,7 @@
 #define VERTICIES_IN_FACE_RAW 4
 #define VERTICIES_IN_FACE_DRAWN 6
 #define ITEMS_IN_VERTEX 5
-#define CHUNK_RENDER_DIST 16
+#define CHUNK_RENDER_DIST 2
 
 #define MSAA_SAMPLES 4
 

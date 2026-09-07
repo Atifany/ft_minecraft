@@ -11,7 +11,7 @@
                 "_UNICODE"
             ],
             "cStandard": "c23",
-            "intelliSenseMode": "windows-gcc-x64",
+            "intelliSenseMode": "macos-clang-x64",
             "cppStandard": "c++20"
         }
     ],
