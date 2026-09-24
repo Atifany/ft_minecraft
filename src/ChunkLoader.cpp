@@ -2,7 +2,7 @@
 
 // parallel thread
 void GenChunks(std::list<Chunk*> chunks, std::list<Chunk*>* chunksBuf, glm::vec3 curCameraChunkCoord, bool* isBusy, std::list<unsigned int>* chunksToDelete);
-Chunk* FindChunkAtPos(std::list<Chunk*> chunks, glm::vec3 _pos);
+Chunk* FindChunkAtPos(const std::list<Chunk*>& chunks, glm::vec3 _pos);
 
 ChunkLoader::ChunkLoader()
 {
@@ -29,18 +29,23 @@ void ChunkLoader::Update(glm::vec3 curCameraChunkPos, bool cameraIsInNewChunk)
 	if (this->isBusy == false && this->chunksBuf.size() != 0)
 		this->JoinGeneratedChunks();
 	
-	// tell chunkLoader to run again if more chunks need to be loaded
-	if (cameraIsInNewChunk == true && this->isBusy == true)
-		this->shouldRunAgain = true;	
-	// load and unload chunks within renderdistance
-	if ((cameraIsInNewChunk == true || this->shouldRunAgain == true) && this->isBusy == false)
+	// continue to exit if no triggers to start chunkLoader are set.
+	if (cameraIsInNewChunk == false && this->shouldRunAgain == false)
+		return ;
+	
+	// if chunkLoader isBusy and the trigger is set, set shouldRunAgain to true.
+	if (this->isBusy == true)
 	{
-		std::cout << "GenChunks triggered from " << curCameraChunkPos.x << "x " << curCameraChunkPos.z << "z\n";
-		this->shouldRunAgain = false;
-		this->startedTime = glfwGetTime();
-		this->isBusy = true;
-		worker = std::jthread(GenChunks, this->chunks, &(this->chunksBuf), curCameraChunkPos, &(this->isBusy), &(this->chunksToDelete));
+		this->shouldRunAgain = true;
+		return ;
 	}
+
+	// ChunkLoader is idle and a trigger to start is present - run worker thread.
+	std::cout << "GenChunks triggered from " << curCameraChunkPos.x << "x " << curCameraChunkPos.z << "z\n";
+	this->shouldRunAgain = false;
+	this->startedTime = glfwGetTime();
+	this->isBusy = true;
+	worker = std::jthread(GenChunks, this->chunks, &(this->chunksBuf), curCameraChunkPos, &(this->isBusy), &(this->chunksToDelete));
 }
 
 void ChunkLoader::JoinGeneratedChunks()
@@ -132,10 +137,15 @@ void GenChunks(std::list<Chunk*> chunks, std::list<Chunk*>* chunksBuf, glm::vec3
 	*isBusy = false;
 }
 
-Chunk* FindChunkAtPos(std::list<Chunk*> chunks, glm::vec3 _pos)
+Chunk* FindChunkAtPos(const std::list<Chunk*>& chunks, glm::vec3 _pos)
 {
 	for (auto& chunk : chunks)
 		if (chunk->pos == _pos)
 			return chunk;
 	return NULL;
 }
+
+// TRIGGER
+// in Update() check if cameraIsInNewChunk and shouldRunAgain
+// if isBusy == false then run GenChunks() and set shouldRunAgain = false
+// if isBusy == true then set shouldRunAgain = true
