@@ -123,7 +123,7 @@ void GenChunks(std::list<Chunk*> chunks, std::list<Chunk*>* chunksBuf, glm::vec3
 		}
 	}
 
-	// Load not yet loaded chunks inside render distance and unload chunks outside CHUNK_RENDER_DIST from camera
+	// Load not yet loaded chunks inside render distance
 	std::list<Chunk*> combinedChunks;
 	combinedChunks.insert(combinedChunks.end(), chunks.begin(), chunks.end());
 	combinedChunks.insert(combinedChunks.end(), (*chunksBuf).begin(), (*chunksBuf).end());
@@ -149,3 +149,6 @@ Chunk* FindChunkAtPos(const std::list<Chunk*>& chunks, glm::vec3 _pos)
 // in Update() check if cameraIsInNewChunk and shouldRunAgain
 // if isBusy == false then run GenChunks() and set shouldRunAgain = false
 // if isBusy == true then set shouldRunAgain = true
+
+// GenVoxels
+// 

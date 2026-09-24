@@ -37,7 +37,7 @@ void Chunk::GenVoxels()
 	}
 }
 
-void Chunk::GenMesh(std::list<Chunk*> chunks)
+void Chunk::GenMesh(const std::list<Chunk*>& chunks)
 {
 	// if no mesh loaded then load new mesh
 	if (this->VAO != 0 || this->mesh.size() != 0)
