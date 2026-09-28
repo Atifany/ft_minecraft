@@ -106,11 +106,11 @@ void GenChunks(std::list<Chunk*> chunks, std::list<Chunk*>* chunksBuf, glm::vec3
 	}
 
 	// Load chunks within CHUNK_RENDER_DIST from camera
-	for (int x = curCameraChunkCoord.x - (CHUNK_RENDER_DIST - 1); x <= curCameraChunkCoord.x + CHUNK_RENDER_DIST - 1; x++)
+	for (int x = curCameraChunkCoord.x - CHUNK_RENDER_DIST; x <= curCameraChunkCoord.x + CHUNK_RENDER_DIST; x++)
 	{
-		for (int y = curCameraChunkCoord.y - (CHUNK_RENDER_DIST - 1); y <= curCameraChunkCoord.y + CHUNK_RENDER_DIST - 1; y++)
+		for (int y = curCameraChunkCoord.y - CHUNK_RENDER_DIST; y <= curCameraChunkCoord.y + CHUNK_RENDER_DIST; y++)
 		{
-			for (int z = curCameraChunkCoord.z - (CHUNK_RENDER_DIST - 1); z <= curCameraChunkCoord.z + CHUNK_RENDER_DIST - 1; z++)
+			for (int z = curCameraChunkCoord.z - CHUNK_RENDER_DIST; z <= curCameraChunkCoord.z + CHUNK_RENDER_DIST; z++)
 			{
 				if (FindChunkAtPos(chunks, glm::vec3(x * CHUNK_SIZE, y * CHUNK_SIZE, z * CHUNK_SIZE)) == NULL)
 				{
@@ -122,18 +122,25 @@ void GenChunks(std::list<Chunk*> chunks, std::list<Chunk*>* chunksBuf, glm::vec3
 			}
 		}
 	}
+	std::cout << "ChunksBuf length: " << (*chunksBuf).size();
 
 	// Load not yet loaded chunks inside render distance
 	std::list<Chunk*> combinedChunks;
 	combinedChunks.insert(combinedChunks.end(), chunks.begin(), chunks.end());
 	combinedChunks.insert(combinedChunks.end(), (*chunksBuf).begin(), (*chunksBuf).end());
-	for (auto chunk = (*chunksBuf).begin(); chunk != (*chunksBuf).end(); )
+	for (auto chunk = (combinedChunks).begin(); chunk != (combinedChunks).end(); )
 	{
-		// load not yet loaded chunks
-		if ((*chunk)->isReady == false)
-			(*chunk)->GenMesh(combinedChunks);
+		if ((*chunk)->isReady == false
+			&& ((*chunk)->pos.x >= (curCameraChunkCoord.x - (CHUNK_RENDER_DIST - 1)) * CHUNK_SIZE
+			&& (*chunk)->pos.x <= (curCameraChunkCoord.x + (CHUNK_RENDER_DIST - 1)) * CHUNK_SIZE
+			&& (*chunk)->pos.y >= (curCameraChunkCoord.y - (CHUNK_RENDER_DIST - 1)) * CHUNK_SIZE
+			&& (*chunk)->pos.y <= (curCameraChunkCoord.y + (CHUNK_RENDER_DIST - 1)) * CHUNK_SIZE
+			&& (*chunk)->pos.z >= (curCameraChunkCoord.z - (CHUNK_RENDER_DIST - 1)) * CHUNK_SIZE
+			&& (*chunk)->pos.z <= (curCameraChunkCoord.z + (CHUNK_RENDER_DIST - 1)) * CHUNK_SIZE))
+				(*chunk)->GenMesh(combinedChunks);
 		chunk++;
 	}
+
 	*isBusy = false;
 }
 
@@ -145,10 +152,3 @@ Chunk* FindChunkAtPos(const std::list<Chunk*>& chunks, glm::vec3 _pos)
 	return NULL;
 }
 
-// TRIGGER
-// in Update() check if cameraIsInNewChunk and shouldRunAgain
-// if isBusy == false then run GenChunks() and set shouldRunAgain = false
-// if isBusy == true then set shouldRunAgain = true
-
-// GenVoxels
-// 
