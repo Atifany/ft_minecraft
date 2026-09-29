@@ -97,9 +97,9 @@ void GenChunks(std::list<Chunk*> chunks, std::list<Chunk*>* chunksBuf, glm::vec3
 	// unload chunks outside CHUNK_RENDER_DIST from camera
 	for (auto& chunk : chunks)
 	{
-		if (chunk->pos.x < (curCameraChunkCoord.x - (CHUNK_RENDER_DIST - 1)) * CHUNK_SIZE || chunk->pos.x > (curCameraChunkCoord.x + CHUNK_RENDER_DIST - 1) * CHUNK_SIZE ||
-			chunk->pos.y < (curCameraChunkCoord.y - (CHUNK_RENDER_DIST - 1)) * CHUNK_SIZE || chunk->pos.y > (curCameraChunkCoord.y + CHUNK_RENDER_DIST - 1) * CHUNK_SIZE ||
-			chunk->pos.z < (curCameraChunkCoord.z - (CHUNK_RENDER_DIST - 1)) * CHUNK_SIZE || chunk->pos.z > (curCameraChunkCoord.z + CHUNK_RENDER_DIST - 1) * CHUNK_SIZE)
+		if (chunk->pos.x < (curCameraChunkCoord.x - (CHUNK_RENDER_DIST)) * CHUNK_SIZE || chunk->pos.x > (curCameraChunkCoord.x + CHUNK_RENDER_DIST) * CHUNK_SIZE ||
+			chunk->pos.y < (curCameraChunkCoord.y - (CHUNK_RENDER_DIST)) * CHUNK_SIZE || chunk->pos.y > (curCameraChunkCoord.y + CHUNK_RENDER_DIST) * CHUNK_SIZE ||
+			chunk->pos.z < (curCameraChunkCoord.z - (CHUNK_RENDER_DIST)) * CHUNK_SIZE || chunk->pos.z > (curCameraChunkCoord.z + CHUNK_RENDER_DIST) * CHUNK_SIZE)
 		{
 			(*chunksToDelete).push_back(chunk->VAO);
 		}
@@ -141,6 +141,9 @@ void GenChunks(std::list<Chunk*> chunks, std::list<Chunk*>* chunksBuf, glm::vec3
 		chunk++;
 	}
 
+	// requires to gen mesh for combinedChunks because there are genvoxeled but not genmeshed chunks.
+	// but cannot add them after in renderer...
+	//*chunksBuf = combinedChunks;
 	*isBusy = false;
 }
 
