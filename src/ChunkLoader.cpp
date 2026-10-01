@@ -97,9 +97,9 @@ void GenChunks(std::list<Chunk*> chunks, std::list<Chunk*>* chunksBuf, glm::vec3
 	// unload chunks outside CHUNK_RENDER_DIST from camera
 	for (auto& chunk : chunks)
 	{
-		if (chunk->chunkPos.x < curCameraChunkCoord.x - CHUNK_RENDER_DIST || chunk->chunkPos.x > curCameraChunkCoord.x + CHUNK_RENDER_DIST ||
-			chunk->chunkPos.y < curCameraChunkCoord.y - CHUNK_RENDER_DIST || chunk->chunkPos.y > curCameraChunkCoord.y + CHUNK_RENDER_DIST ||
-			chunk->chunkPos.z < curCameraChunkCoord.z - CHUNK_RENDER_DIST || chunk->chunkPos.z > curCameraChunkCoord.z + CHUNK_RENDER_DIST)
+		if (chunk->chunkPos.x < curCameraChunkCoord.x - (CHUNK_RENDER_DIST - 1) || chunk->chunkPos.x > curCameraChunkCoord.x + (CHUNK_RENDER_DIST - 1) ||
+			chunk->chunkPos.y < curCameraChunkCoord.y - (CHUNK_RENDER_DIST - 1) || chunk->chunkPos.y > curCameraChunkCoord.y + (CHUNK_RENDER_DIST - 1) ||
+			chunk->chunkPos.z < curCameraChunkCoord.z - (CHUNK_RENDER_DIST - 1) || chunk->chunkPos.z > curCameraChunkCoord.z + (CHUNK_RENDER_DIST - 1))
 		{
 			(*chunksToDelete).push_back(chunk->VAO);
 		}
