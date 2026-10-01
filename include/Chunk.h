@@ -6,13 +6,14 @@
 class Chunk
 {
 	public:
-		Chunk();
+		Chunk(glm::vec3 _pos);
 		~Chunk();
 		void GenVoxels();
 		void GenMesh(const std::list<Chunk*>& chunks);
 		void GenBuffers();
 
 		glm::vec3 pos;
+		glm::vec3 chunkPos; // rounded by CHUNK_SIZE position
 		unsigned int voxels[CHUNK_SIZE][CHUNK_SIZE][CHUNK_SIZE];
 		std::vector<unsigned int> indices;
 		unsigned int VAO;

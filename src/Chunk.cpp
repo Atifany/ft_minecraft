@@ -2,9 +2,12 @@
 
 void InsertVerteciesToMesh(std::vector<unsigned int> &indices, std::vector<float> &mesh, const Vertex verticies[], size_t verticiesSize, glm::vec3 offset);
 
-Chunk::Chunk()
+Chunk::Chunk(glm::vec3 _pos)
 {
-	this->pos = glm::vec3(0.0f, 0.0f, 0.0f);
+	this->pos = _pos;
+	this->chunkPos = glm::vec3(std::floor(this->pos.x / CHUNK_SIZE),
+							   std::floor(this->pos.y / CHUNK_SIZE),
+							   std::floor(this->pos.z / CHUNK_SIZE));
 	this->VAO = 0;
 	this->VBO = 0;
 	this->EBO = 0;

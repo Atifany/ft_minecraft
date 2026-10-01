@@ -2,7 +2,7 @@
 
 // parallel thread
 void GenChunks(std::list<Chunk*> chunks, std::list<Chunk*>* chunksBuf, glm::vec3 curCameraChunkCoord, bool* isBusy, std::list<unsigned int>* chunksToDelete);
-Chunk* FindChunkAtPos(const std::list<Chunk*>& chunks, glm::vec3 _pos);
+Chunk* FindChunkAtChunkPos(const std::list<Chunk*>& chunks, glm::vec3 _chunkPos);
 
 ChunkLoader::ChunkLoader()
 {
@@ -24,6 +24,8 @@ ChunkLoader::~ChunkLoader()
 
 void ChunkLoader::Update(glm::vec3 curCameraChunkPos, bool cameraIsInNewChunk)
 {
+	// Add chunk->chunkPos to bring curCameraChunkCoord and chunkPos to one unit of measurment
+
 	if (this->isBusy == false && this->chunksToDelete.size() > 0)
 		this->DeleteChunks();
 	if (this->isBusy == false && this->chunksBuf.size() != 0)
@@ -41,7 +43,6 @@ void ChunkLoader::Update(glm::vec3 curCameraChunkPos, bool cameraIsInNewChunk)
 	}
 
 	// ChunkLoader is idle and a trigger to start is present - run worker thread.
-	std::cout << "GenChunks triggered from " << curCameraChunkPos.x << "x " << curCameraChunkPos.z << "z\n";
 	this->shouldRunAgain = false;
 	this->startedTime = glfwGetTime();
 	this->isBusy = true;
@@ -70,7 +71,6 @@ void ChunkLoader::DeleteChunks()
 		else
 			chunk++;
 	}
-	//std::cout << "\nChunkLoader: deleted " << this->chunksToDelete.size() << " chunks.\n";
 	this->chunksToDelete.clear();
 }
 
@@ -97,9 +97,9 @@ void GenChunks(std::list<Chunk*> chunks, std::list<Chunk*>* chunksBuf, glm::vec3
 	// unload chunks outside CHUNK_RENDER_DIST from camera
 	for (auto& chunk : chunks)
 	{
-		if (chunk->pos.x < (curCameraChunkCoord.x - (CHUNK_RENDER_DIST)) * CHUNK_SIZE || chunk->pos.x > (curCameraChunkCoord.x + CHUNK_RENDER_DIST) * CHUNK_SIZE ||
-			chunk->pos.y < (curCameraChunkCoord.y - (CHUNK_RENDER_DIST)) * CHUNK_SIZE || chunk->pos.y > (curCameraChunkCoord.y + CHUNK_RENDER_DIST) * CHUNK_SIZE ||
-			chunk->pos.z < (curCameraChunkCoord.z - (CHUNK_RENDER_DIST)) * CHUNK_SIZE || chunk->pos.z > (curCameraChunkCoord.z + CHUNK_RENDER_DIST) * CHUNK_SIZE)
+		if (chunk->chunkPos.x < curCameraChunkCoord.x - CHUNK_RENDER_DIST || chunk->chunkPos.x > curCameraChunkCoord.x + CHUNK_RENDER_DIST ||
+			chunk->chunkPos.y < curCameraChunkCoord.y - CHUNK_RENDER_DIST || chunk->chunkPos.y > curCameraChunkCoord.y + CHUNK_RENDER_DIST ||
+			chunk->chunkPos.z < curCameraChunkCoord.z - CHUNK_RENDER_DIST || chunk->chunkPos.z > curCameraChunkCoord.z + CHUNK_RENDER_DIST)
 		{
 			(*chunksToDelete).push_back(chunk->VAO);
 		}
@@ -112,17 +112,15 @@ void GenChunks(std::list<Chunk*> chunks, std::list<Chunk*>* chunksBuf, glm::vec3
 		{
 			for (int z = curCameraChunkCoord.z - CHUNK_RENDER_DIST; z <= curCameraChunkCoord.z + CHUNK_RENDER_DIST; z++)
 			{
-				if (FindChunkAtPos(chunks, glm::vec3(x * CHUNK_SIZE, y * CHUNK_SIZE, z * CHUNK_SIZE)) == NULL)
+				if (FindChunkAtChunkPos(chunks, glm::vec3(x * CHUNK_SIZE, y * CHUNK_SIZE, z * CHUNK_SIZE)) == NULL)
 				{
-					Chunk* chunk = new Chunk();
-					chunk->pos = glm::vec3(x * CHUNK_SIZE, y * CHUNK_SIZE, z * CHUNK_SIZE);
+					Chunk* chunk = new Chunk(glm::vec3(x * CHUNK_SIZE, y * CHUNK_SIZE, z * CHUNK_SIZE));
 					chunk->GenVoxels();
 					(*chunksBuf).push_back(chunk);
 				}
 			}
 		}
 	}
-	std::cout << "ChunksBuf length: " << (*chunksBuf).size();
 
 	// Load not yet loaded chunks inside render distance
 	std::list<Chunk*> combinedChunks;
@@ -131,12 +129,12 @@ void GenChunks(std::list<Chunk*> chunks, std::list<Chunk*>* chunksBuf, glm::vec3
 	for (auto chunk = (combinedChunks).begin(); chunk != (combinedChunks).end(); )
 	{
 		if ((*chunk)->isReady == false
-			&& ((*chunk)->pos.x >= (curCameraChunkCoord.x - (CHUNK_RENDER_DIST - 1)) * CHUNK_SIZE
-			&& (*chunk)->pos.x <= (curCameraChunkCoord.x + (CHUNK_RENDER_DIST - 1)) * CHUNK_SIZE
-			&& (*chunk)->pos.y >= (curCameraChunkCoord.y - (CHUNK_RENDER_DIST - 1)) * CHUNK_SIZE
-			&& (*chunk)->pos.y <= (curCameraChunkCoord.y + (CHUNK_RENDER_DIST - 1)) * CHUNK_SIZE
-			&& (*chunk)->pos.z >= (curCameraChunkCoord.z - (CHUNK_RENDER_DIST - 1)) * CHUNK_SIZE
-			&& (*chunk)->pos.z <= (curCameraChunkCoord.z + (CHUNK_RENDER_DIST - 1)) * CHUNK_SIZE))
+			&& ((*chunk)->chunkPos.x >= curCameraChunkCoord.x - (CHUNK_RENDER_DIST - 1)
+			&& (*chunk)->chunkPos.x <= curCameraChunkCoord.x + (CHUNK_RENDER_DIST - 1)
+			&& (*chunk)->chunkPos.y >= curCameraChunkCoord.y - (CHUNK_RENDER_DIST - 1)
+			&& (*chunk)->chunkPos.y <= curCameraChunkCoord.y + (CHUNK_RENDER_DIST - 1)
+			&& (*chunk)->chunkPos.z >= curCameraChunkCoord.z - (CHUNK_RENDER_DIST - 1)
+			&& (*chunk)->chunkPos.z <= curCameraChunkCoord.z + (CHUNK_RENDER_DIST - 1)))
 				(*chunk)->GenMesh(combinedChunks);
 		chunk++;
 	}
@@ -147,10 +145,10 @@ void GenChunks(std::list<Chunk*> chunks, std::list<Chunk*>* chunksBuf, glm::vec3
 	*isBusy = false;
 }
 
-Chunk* FindChunkAtPos(const std::list<Chunk*>& chunks, glm::vec3 _pos)
+Chunk* FindChunkAtChunkPos(const std::list<Chunk*>& chunks, glm::vec3 _chunkPos)
 {
 	for (auto& chunk : chunks)
-		if (chunk->pos == _pos)
+		if (chunk->chunkPos == _chunkPos)
 			return chunk;
 	return NULL;
 }

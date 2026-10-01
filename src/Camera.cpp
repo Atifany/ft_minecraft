@@ -59,9 +59,7 @@ void Camera::UpdateChunkPos()
 		tmpPos.y != this->curChunkPos.y ||
 		tmpPos.z != this->curChunkPos.z)
 	{
-		std::cout << "Update curChunkPos from " << this->curChunkPos.x << "x " << this->curChunkPos.z << "z to ";
 		this->curChunkPos = tmpPos;
-		std::cout << this->curChunkPos.x << "x " << this->curChunkPos.z << "z\n";
 		this->isInNewChunk = true;
 	}
 }
